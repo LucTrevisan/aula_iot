@@ -1,0 +1,10 @@
+# vídeo de referência baixado do TikTok (conteúdo de outro autor, fica só no computador)
+ssstik.io_*.mp4
+
+# arquivos temporários
+__pycache__/
+*.pyc
+node_modules/
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,74 @@
+ROTEIRO: COMO AS COISAS CONVERSAM
+45 trechos · cerca de 4 min 47 s
+Cada linha começa com o código do trecho, que é também o nome do arquivo de áudio (ex.: 02-3.mp3).
+
+=== 01 · ABERTURA ===
+[01-1] Você toca num botão do celular e uma luz acende do outro lado da sala.
+[01-2] O número que aparece no app não nasce no celular. Ele vem de um sensor ligado numa placa: o ESP32.
+[01-3] E quando você toca no botão, o comando precisa chegar até a placa para acender o LED.
+[01-4] Como o app e a placa conversam? Com três ideias: API, WebSocket e MQTT.
+
+=== 02 · O QUE É UMA API ===
+[02-1] A cozinha fica lá atrás. Você está na mesa, com fome.
+[02-2] Ninguém atravessa a parede: você não entra na cozinha, e a cozinha não vem até a sua mesa.
+[02-3] Quem faz a ponte é o garçom. Ele leva o pedido e volta com o prato.
+[02-4] De um lado, um aplicativo que precisa de algo. Do outro, um sistema que tem. A API leva o pedido e traz a resposta.
+
+=== 03 · O CARDÁPIO ===
+[03-1] Você só pode pedir o que está nele. Pedir um prato que não existe não funciona.
+[03-2] Ela diz o que dá para pedir e como pedir: o endereço, o verbo e o formato da resposta.
+
+=== 04 · PEDIDO E RESPOSTA ===
+[04-1] Na web, o pedido segue um protocolo chamado HTTP. Vai um verbo e um endereço.
+[04-2] A resposta volta com um código, como 200 OK, e os dados em JSON.
+[04-3] Os verbos dizem a intenção: GET busca, POST envia, PUT atualiza e DELETE apaga.
+[04-4] Repare: no HTTP, o servidor nunca fala primeiro. Ele só responde quando alguém pergunta.
+
+=== 05 · O PROBLEMA DO TEMPO REAL ===
+[05-1] Um sensor de temperatura muda a qualquer momento. E o app quer saber na hora.
+[05-2] Com HTTP, o app precisa perguntar de novo, e de novo, e de novo. Isso se chama polling.
+[05-3] É chamar o garçom a cada minuto: já saiu? Gasta rede, gasta bateria, e a novidade ainda chega atrasada.
+[05-4] O ideal é o sistema avisar sozinho quando algo muda.
+
+=== 06 · WEBSOCKET ===
+[06-1] O WebSocket começa como um pedido HTTP comum, pedindo um upgrade.
+[06-2] Depois disso, a linha fica aberta, como numa ligação. Os dois lados falam quando quiserem.
+[06-3] Isso se chama full-duplex. O endereço começa com ws://, ou wss:// na versão criptografada.
+[06-4] O WebSocket não organiza quem recebe cada mensagem. Com dezenas de aparelhos, vira bagunça. Para isso existe o MQTT.
+
+=== 07 · MQTT: PUBLICAR E ASSINAR ===
+[07-1] O MQTT é um protocolo de mensagens feito para a Internet das Coisas.
+[07-2] Quem posta não manda o vídeo para cada pessoa. Posta no canal, e a plataforma entrega para quem se inscreveu.
+[07-3] No MQTT é igual: o ESP32 publica no tópico escola/lab1/temperatura, e o broker entrega para quem assinou.
+[07-4] Quem publica nem sabe quantos estão ouvindo. Dá para incluir um painel novo sem mexer no sensor.
+
+=== 08 · TÓPICOS, QOS E TESTAMENTO ===
+[08-1] Os nomes vão do geral para o específico, separados por barras.
+[08-2] O + vale um nível qualquer. O # vale tudo dali para baixo.
+[08-3] Zero: no máximo uma vez. Um: pelo menos uma vez. Dois: exatamente uma vez.
+[08-4] A mensagem retida fica guardada para quem chegar depois. O testamento avisa todos se o aparelho cair.
+[08-5] O MQTT nasceu para monitorar oleodutos por satélite, onde cada byte custava caro. Por isso ele é tão leve.
+
+=== 09 · WEBSOCKET + MQTT ===
+[09-1] WebSocket e MQTT não competem. Um completa o outro.
+[09-2] O WebSocket é o transporte, o cano. O MQTT é o jeito de organizar as mensagens que passam por ele.
+[09-3] O navegador não abre conexão MQTT pura. Então o MQTT viaja dentro de um WebSocket. É assim que a cena 3D fala com o broker.
+
+=== 10 · O ESP32 ===
+[10-1] O ESP32 é um microcontrolador barato, com Wi-Fi e Bluetooth no mesmo chip.
+[10-2] Temperatura, luz e um potenciômetro entram pelos pinos. Um LED ou um relé saem.
+[10-3] No nosso projeto, ele publica as leituras em JSON e assina um tópico de comandos para o LED.
+
+=== 11 · ARQUITETURA DO PROJETO ===
+[11-1] O ESP32 publica a telemetria no broker, usando MQTT sobre TCP.
+[11-2] A página feita com Babylon.js assina os tópicos por WebSocket e transforma os números em objetos 3D.
+[11-3] Com WebXR, a mesma cena abre nos óculos de realidade virtual ou no celular, em realidade aumentada.
+[11-4] Você aperta um botão virtual, a página publica um comando e o LED de verdade acende.
+
+=== 12 · PARA GUARDAR ===
+[12-1] A API é o garçom. O HTTP é pedir e esperar a resposta.
+[12-2] O WebSocket é a linha aberta. O MQTT é o canal com inscritos, e o broker é a plataforma.
+[12-3] E o ESP32 é quem sente e age no mundo físico. Agora é com você: faça o quiz e abra o laboratório.
+
+=== 13 · QUIZ ===
+[13-1] Toque na resposta que você acha certa. No fim, aparece a sua pontuação.

@@ -1,0 +1,179 @@
+1
+00:00:00,000 --> 00:00:05,143
+Você toca num botão do celular e uma luz acende do outro lado da sala.
+
+2
+00:00:05,193 --> 00:00:13,443
+O número que aparece no app não nasce no celular. Ele vem de um sensor ligado numa placa: o ESP32.
+
+3
+00:00:13,493 --> 00:00:19,014
+E quando você toca no botão, o comando precisa chegar até a placa para acender o LED.
+
+4
+00:00:19,064 --> 00:00:26,614
+Como o app e a placa conversam? Com três ideias: API, WebSocket e MQTT.
+
+5
+00:00:26,664 --> 00:00:31,182
+A cozinha fica lá atrás. Você está na mesa, com fome.
+
+6
+00:00:31,232 --> 00:00:37,040
+Ninguém atravessa a parede: você não entra na cozinha, e a cozinha não vem até a sua mesa.
+
+7
+00:00:37,090 --> 00:00:41,969
+Quem faz a ponte é o garçom. Ele leva o pedido e volta com o prato.
+
+8
+00:00:42,019 --> 00:00:50,726
+De um lado, um aplicativo que precisa de algo. Do outro, um sistema que tem. A API leva o pedido e traz a resposta.
+
+9
+00:00:50,776 --> 00:00:55,795
+Você só pode pedir o que está nele. Pedir um prato que não existe não funciona.
+
+10
+00:00:55,845 --> 00:01:02,410
+Ela diz o que dá para pedir e como pedir: o endereço, o verbo e o formato da resposta.
+
+11
+00:01:02,460 --> 00:01:08,776
+Na web, o pedido segue um protocolo chamado HTTP. Vai um verbo e um endereço.
+
+12
+00:01:08,826 --> 00:01:14,076
+A resposta volta com um código, como 200 OK, e os dados em JSON.
+
+13
+00:01:14,126 --> 00:01:22,443
+Os verbos dizem a intenção: GET busca, POST envia, PUT atualiza e DELETE apaga.
+
+14
+00:01:22,493 --> 00:01:29,282
+Repare: no HTTP, o servidor nunca fala primeiro. Ele só responde quando alguém pergunta.
+
+15
+00:01:29,332 --> 00:01:34,625
+Um sensor de temperatura muda a qualquer momento. E o app quer saber na hora.
+
+16
+00:01:34,675 --> 00:01:41,563
+Com HTTP, o app precisa perguntar de novo, e de novo, e de novo. Isso se chama polling.
+
+17
+00:01:41,613 --> 00:01:48,909
+É chamar o garçom a cada minuto: já saiu? Gasta rede, gasta bateria, e a novidade ainda chega atrasada.
+
+18
+00:01:48,959 --> 00:01:52,724
+O ideal é o sistema avisar sozinho quando algo muda.
+
+19
+00:01:52,774 --> 00:01:57,775
+O WebSocket começa como um pedido HTTP comum, pedindo um upgrade.
+
+20
+00:01:57,825 --> 00:02:03,708
+Depois disso, a linha fica aberta, como numa ligação. Os dois lados falam quando quiserem.
+
+21
+00:02:03,758 --> 00:02:14,460
+Isso se chama full-duplex. O endereço começa com ws://, ou wss:// na versão criptografada.
+
+22
+00:02:14,510 --> 00:02:23,767
+O WebSocket não organiza quem recebe cada mensagem. Com dezenas de aparelhos, vira bagunça. Para isso existe o MQTT.
+
+23
+00:02:23,817 --> 00:02:28,827
+O MQTT é um protocolo de mensagens feito para a Internet das Coisas.
+
+24
+00:02:28,877 --> 00:02:35,649
+Quem posta não manda o vídeo para cada pessoa. Posta no canal, e a plataforma entrega para quem se inscreveu.
+
+25
+00:02:35,699 --> 00:02:45,795
+No MQTT é igual: o ESP32 publica no tópico escola/lab1/temperatura, e o broker entrega para quem assinou.
+
+26
+00:02:45,845 --> 00:02:52,195
+Quem publica nem sabe quantos estão ouvindo. Dá para incluir um painel novo sem mexer no sensor.
+
+27
+00:02:52,245 --> 00:02:56,581
+Os nomes vão do geral para o específico, separados por barras.
+
+28
+00:02:56,631 --> 00:03:01,600
+O + vale um nível qualquer. O # vale tudo dali para baixo.
+
+29
+00:03:01,650 --> 00:03:09,469
+Zero: no máximo uma vez. Um: pelo menos uma vez. Dois: exatamente uma vez.
+
+30
+00:03:09,519 --> 00:03:16,400
+A mensagem retida fica guardada para quem chegar depois. O testamento avisa todos se o aparelho cair.
+
+31
+00:03:16,450 --> 00:03:24,504
+O MQTT nasceu para monitorar oleodutos por satélite, onde cada byte custava caro. Por isso ele é tão leve.
+
+32
+00:03:24,554 --> 00:03:29,378
+WebSocket e MQTT não competem. Um completa o outro.
+
+33
+00:03:29,428 --> 00:03:36,665
+O WebSocket é o transporte, o cano. O MQTT é o jeito de organizar as mensagens que passam por ele.
+
+34
+00:03:36,715 --> 00:03:46,864
+O navegador não abre conexão MQTT pura. Então o MQTT viaja dentro de um WebSocket. É assim que a cena 3D fala com o broker.
+
+35
+00:03:46,914 --> 00:03:53,410
+O ESP32 é um microcontrolador barato, com Wi-Fi e Bluetooth no mesmo chip.
+
+36
+00:03:53,460 --> 00:03:59,708
+Temperatura, luz e um potenciômetro entram pelos pinos. Um LED ou um relé saem.
+
+37
+00:03:59,758 --> 00:04:05,667
+No nosso projeto, ele publica as leituras em JSON e assina um tópico de comandos para o LED.
+
+38
+00:04:05,717 --> 00:04:12,047
+O ESP32 publica a telemetria no broker, usando MQTT sobre TCP.
+
+39
+00:04:12,097 --> 00:04:20,207
+A página feita com Babylon.js assina os tópicos por WebSocket e transforma os números em objetos 3D.
+
+40
+00:04:20,257 --> 00:04:27,453
+Com WebXR, a mesma cena abre nos óculos de realidade virtual ou no celular, em realidade aumentada.
+
+41
+00:04:27,503 --> 00:04:33,539
+Você aperta um botão virtual, a página publica um comando e o LED de verdade acende.
+
+42
+00:04:33,589 --> 00:04:38,945
+A API é o garçom. O HTTP é pedir e esperar a resposta.
+
+43
+00:04:38,995 --> 00:04:45,858
+O WebSocket é a linha aberta. O MQTT é o canal com inscritos, e o broker é a plataforma.
+
+44
+00:04:45,908 --> 00:04:54,476
+E o ESP32 é quem sente e age no mundo físico. Agora é com você: faça o quiz e abra o laboratório.
+
+45
+00:04:54,526 --> 00:05:02,195
+Toque na resposta que você acha certa. No fim, aparece a sua pontuação.

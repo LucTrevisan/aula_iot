@@ -1,0 +1,1785 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Como as Coisas Conversam</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: palco vertical 9:16 (1080×1920) no formato de vídeo curto — selo no topo, sobretítulo + título em duas cores + legenda,
+   diagrama no meio, tabela de analogias embaixo e uma linha de progresso que contorna a borda */
+:root{
+  --bg:#0C0D11;
+  --bg-2:#111318;
+  --card:#16181E;
+  --card-2:#1E2129;
+  --border:#2A2E37;
+  --border-2:#3A3F4B;
+  --text:#F3F4F6;
+  --muted:#9BA1AD;
+  --faint:#666D7B;
+  --orange:#FF8A3D;
+  --teal:#2FE3C2;
+  --purple:#A98BFA;
+  --green:#4ADE80;
+  --sky:#60C8F5;
+  --red:#F87171;
+  --f-ui:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased}
+button,select,a{font:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+.teal{--c:var(--teal)}.purple{--c:var(--purple)}.green{--c:var(--green)}.orange{--c:var(--orange)}.sky{--c:var(--sky)}.red{--c:var(--red)}
+
+/* ---------- página ---------- */
+.app{display:grid;grid-template-columns:auto minmax(300px,380px);gap:24px;justify-content:center;align-items:start;height:100vh;height:100dvh;padding-block:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.screen{position:relative;height:calc(100vh - 32px);height:calc(100dvh - 32px);aspect-ratio:9/16;max-width:100%;overflow:hidden;border-radius:18px;background:var(--bg);box-shadow:0 0 0 1px var(--border),0 30px 80px -30px #000}
+.screen:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;border-radius:0}
+.side{height:100%;overflow:auto;display:flex;flex-direction:column;gap:14px;min-width:0;padding-right:4px}
+.side>*{flex-shrink:0}
+.brand .kicker{font:600 11.5px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
+.brand h1{margin:8px 0 6px;font:800 27px/1.1 var(--f-ui);letter-spacing:-.01em;text-wrap:balance}
+.brand h1 em{font-style:normal;color:var(--orange)}
+.brand p{margin:0;color:var(--muted);font-size:14px;line-height:1.5;max-width:52ch}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
+.controls{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.cbtn{appearance:none;border:1px solid transparent;background:transparent;color:var(--text);width:42px;height:42px;border-radius:12px;display:grid;place-items:center;cursor:pointer;flex:none}
+.cbtn:hover{background:var(--card-2)}
+.cbtn svg{width:22px;height:22px}
+.cbtn.main{background:var(--orange);color:var(--bg);width:54px;height:54px;border-radius:50%}
+.cbtn[aria-pressed="false"]{color:var(--faint)}
+.progress{display:flex;gap:4px;margin-top:10px}
+.seg{flex:1;height:22px;padding:0;border:0;background:transparent;cursor:pointer;display:flex;align-items:center}
+.seg span{position:relative;display:block;width:100%;height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.seg span i{position:absolute;inset:0 auto 0 0;width:0;background:var(--teal);transition:width .4s}
+.seg:hover span{background:var(--border-2)}
+.where{display:flex;justify-content:space-between;font:500 12px/1.2 var(--f-mono);color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.opts{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+select{background:var(--bg-2);color:var(--text);border:1px solid var(--border);border-radius:10px;height:38px;padding:0 8px;font:500 13px var(--f-ui);min-width:0;flex:1 1 120px}
+.chapters{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.chapters button{width:100%;display:flex;gap:12px;align-items:baseline;text-align:left;color:var(--muted);background:transparent;border:0;border-radius:10px;padding:8px 10px;cursor:pointer;font:500 14px/1.3 var(--f-ui)}
+.chapters button small{font:600 11px/1 var(--f-mono);letter-spacing:.12em;color:var(--faint);min-width:22px}
+.chapters button:hover{background:var(--card-2);color:var(--text)}
+.chapters button[aria-current="true"]{background:var(--card-2);color:var(--text)}
+.chapters button[aria-current="true"] small{color:var(--orange)}
+.lab-link{display:flex;justify-content:center;align-items:center;gap:8px;text-decoration:none;color:var(--bg);background:var(--orange);padding:12px 16px;border-radius:999px;font:700 15px/1 var(--f-ui)}
+.lab-link:hover{filter:brightness(1.08)}
+.keys{margin:0;font:500 11.5px/1.7 var(--f-mono);color:var(--faint)}
+.keys kbd{font:inherit;border:1px solid var(--border);border-radius:4px;padding:0 5px;color:var(--muted)}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));translate:-50% 0;background:var(--orange);color:var(--bg);font:700 14px/1 var(--f-ui);padding:10px 16px;border-radius:999px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1}
+@media (max-width:860px),(max-aspect-ratio:1/1){
+  .app{grid-template-columns:minmax(0,1fr);height:auto;justify-content:stretch}
+  .screen{height:auto;width:min(100%, calc((100vh - 32px) * 9 / 16));width:min(100%, calc((100dvh - 32px) * 9 / 16));margin-inline:auto}
+  .side{height:auto;overflow:visible;padding-right:0;width:min(100%,560px);margin-inline:auto}
+  .chapters{grid-template-columns:1fr 1fr}
+}
+/* modo gravação: só o palco, para gravar a tela em 9:16 */
+.rec .app{grid-template-columns:auto;padding:0;justify-content:center}
+.rec .side{display:none}
+.rec .screen{height:100vh;height:100dvh;width:auto;border-radius:0;box-shadow:none}
+
+/* ---------- palco ---------- */
+.stage{position:absolute;left:0;top:0;width:1080px;height:1920px;transform-origin:0 0;overflow:hidden;background:var(--bg)}
+#bg,#edge,#wires,#layer,#pkts{position:absolute;left:0;top:0;width:1080px;height:1920px}
+#edge,#wires,#pkts{pointer-events:none}
+.instant,.instant *{transition:none!important}
+.instant .w,.instant .swap,.instant .sub.in,.instant .r.on .ans{animation:none!important}
+
+.profile{position:absolute;left:50%;top:58px;translate:-50% 0;display:flex;align-items:center;gap:16px;z-index:2}
+.profile .av{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:3px solid var(--orange);color:var(--orange)}
+.profile .av svg{width:34px;height:34px}
+.profile b{display:block;font:700 25px/1.15 var(--f-ui)}
+.profile small{display:block;font:500 19px/1.2 var(--f-ui);color:var(--muted)}
+
+.hd{position:absolute;left:70px;top:190px;width:940px;display:flex;flex-direction:column;gap:12px;z-index:2}
+.hd.center,.hd.hero{align-items:center;text-align:center}
+.eyebrow{font:700 22px/1 var(--f-mono);letter-spacing:.2em;text-transform:uppercase;color:var(--c,var(--teal))}
+.headline{margin:0;font:800 74px/1.04 var(--f-ui);letter-spacing:-.025em}
+.headline .l1,.headline .l2{display:block}
+.headline .l2{color:var(--orange)}
+.hero .headline .l1{font-size:84px}
+.hero .headline .l2{font-size:156px;line-height:1}
+.hero{top:220px}
+.w{display:inline-block;animation:wIn .7s cubic-bezier(.2,.8,.2,1) both}
+@keyframes wIn{from{opacity:0;filter:blur(12px);translate:0 14px}}
+.sub{margin:4px 0 0;font:500 31px/1.42 var(--f-ui);color:var(--muted);max-width:940px;text-wrap:pretty}
+.sub b{color:var(--text);font-weight:700}
+.sub.in{animation:subIn .6s ease both}
+@keyframes subIn{from{opacity:0;translate:0 8px}}
+
+.edge-path{fill:none;stroke:var(--teal);stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--teal) 70%,transparent))}
+.edge-head{fill:var(--teal);filter:drop-shadow(0 0 10px var(--teal))}
+.edge-node{position:absolute;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:3px solid var(--teal);color:var(--teal);z-index:3;box-shadow:0 0 18px color-mix(in srgb,var(--teal) 45%,transparent)}
+.edge-node svg{width:26px;height:26px}
+
+/* peças */
+.c{position:absolute;width:max-content;transition:opacity .55s ease,translate .6s cubic-bezier(.2,.8,.2,1),border-color .4s,box-shadow .4s,background-color .4s}
+.c.hid{opacity:0;translate:0 22px}
+.rv{transition:opacity .5s ease,translate .5s ease,background-color .35s}
+.rv.hid{opacity:0;translate:0 12px}
+.swap{animation:swap .55s ease}
+@keyframes swap{from{opacity:0;filter:blur(8px)}}
+.flash{animation:flash 1s ease}
+@keyframes flash{30%{box-shadow:0 0 0 6px color-mix(in srgb,var(--c,var(--orange)) 35%,transparent),0 0 60px color-mix(in srgb,var(--c,var(--orange)) 55%,transparent);border-color:var(--c,var(--orange))}}
+
+.ic{display:block}
+.dot{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--c) 17%,transparent);color:var(--c);font-style:normal}
+.dot svg{width:26px;height:26px}
+.dot.lg{width:68px;height:68px}
+.dot.lg svg{width:36px;height:36px}
+.dot.solid{background:var(--c);color:var(--bg)}
+.ucard{display:flex;align-items:center;gap:22px;background:var(--card);border:1.5px solid var(--border);border-radius:26px;padding:0 28px;box-shadow:0 24px 50px -24px #000}
+.ucard .art{width:78px;height:78px;flex:none;color:var(--c)}
+.ucard .art svg{width:100%;height:100%}
+.ucard .txt{flex:1;display:grid;gap:4px;min-width:0}
+.ucard.end .txt{text-align:right}
+.ucard .txt b{font:800 35px/1.1 var(--f-ui);letter-spacing:-.01em}
+.ucard .txt small{font:500 24px/1.25 var(--f-ui);color:var(--muted)}
+.ucard.col{flex-direction:column;justify-content:center;gap:8px;padding:0 14px;text-align:center}
+.ucard.col .txt{flex:none;text-align:center}
+.ucard.col .txt b{font-size:30px}
+.ucard.col .txt small{font:600 20px/1.2 var(--f-mono)}
+.ucard.glow{border-color:var(--c);box-shadow:0 0 0 5px color-mix(in srgb,var(--c) 18%,transparent),0 24px 50px -24px #000}
+.ucard.led-on .art{color:var(--red);filter:drop-shadow(0 0 14px var(--red))}
+.ucard .readout{font:700 58px/1 var(--f-mono);color:var(--orange);letter-spacing:-.02em}
+.readout.flash{animation:flashText 1s ease}
+@keyframes flashText{30%{color:var(--bg);background:var(--orange);border-radius:10px}}
+
+.tbl{width:940px;background:var(--card);border:1.5px solid var(--border);border-radius:24px;padding:16px 22px 14px}
+.th,.trow{display:grid;grid-template-columns:1fr 48px 1fr;align-items:center}
+.th{font:700 19px/1 var(--f-mono);letter-spacing:.15em;color:var(--faint);padding:8px 12px 14px}
+.trow{height:60px;padding:0 12px;border-radius:14px;font:600 28px/1 var(--f-ui)}
+.trow.cur{background:var(--card-2)}
+.trow .ar{color:var(--faint);font-size:24px}
+.cell{display:flex;align-items:center;gap:14px;min-width:0;white-space:nowrap}
+.cell .dot{width:40px;height:40px}
+.cell .dot svg{width:24px;height:24px}
+.r .q{color:var(--faint);font-weight:700}
+.r .ans{display:none}
+.r.on .q{display:none}
+.r.on .ans{display:flex;align-items:center;gap:14px;animation:swap .5s ease}
+
+.link{fill:none;stroke:var(--c,var(--purple));stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1;stroke-dashoffset:0;transition:stroke-dashoffset 1s ease,opacity .4s}
+.link.hid{stroke-dashoffset:1;opacity:0}
+.link.dotted{stroke-dasharray:0 15;stroke-width:6;stroke:var(--c,var(--muted))}
+.link.dotted.hid,.link.pipe.hid,.link.core.hid{stroke-dashoffset:0}
+.link.thin{stroke:var(--border-2);stroke-width:4}
+.link.pipe{stroke:color-mix(in srgb,var(--teal) 45%,var(--bg));stroke-width:84;stroke-dasharray:none;stroke-linecap:round}
+.link.core{stroke:var(--bg-2);stroke-width:70;stroke-dasharray:none;stroke-linecap:round}
+.link.live{filter:drop-shadow(0 0 12px color-mix(in srgb,var(--teal) 55%,transparent))}
+
+.pkt{position:absolute;left:0;top:0;display:flex;align-items:center;gap:10px;white-space:nowrap;font:600 23px/1 var(--f-mono);padding:11px 18px;border-radius:999px;background:var(--card-2);color:var(--text);border:2px solid var(--orange);box-shadow:0 0 30px -4px color-mix(in srgb,var(--orange) 75%,transparent);will-change:transform,opacity;opacity:0;z-index:4}
+.pkt::before{content:"";width:12px;height:12px;border-radius:50%;background:var(--orange);flex:none}
+.pkt.cmd{border-color:var(--teal);box-shadow:0 0 30px -4px color-mix(in srgb,var(--teal) 75%,transparent)}
+.pkt.cmd::before{background:var(--teal)}
+.pkt.muted{border-color:var(--border-2);box-shadow:none;color:var(--muted)}
+.pkt.muted::before{background:var(--faint)}
+.pkt.dot{padding:0;width:24px;height:24px;border:0;background:var(--purple);box-shadow:0 0 22px var(--purple)}
+.pkt.dot::before{display:none}
+
+/* cena 0: celular */
+.phone{width:500px;height:600px;padding:28px;background:#101217;border:3px solid var(--border-2);border-radius:58px;display:flex;flex-direction:column;gap:20px;transform-origin:0 0;box-shadow:0 40px 90px -30px #000;transition:opacity .55s,translate .6s,left .9s cubic-bezier(.6,0,.2,1),top .9s cubic-bezier(.6,0,.2,1),scale .9s cubic-bezier(.6,0,.2,1)}
+.ph-top{height:60px;display:flex;align-items:center;justify-content:space-between;font:800 30px/1 var(--f-ui);padding:0 6px}
+.ph-card{background:var(--card);border:1.5px solid var(--border);border-radius:28px;padding:0 26px;display:flex;align-items:center;justify-content:space-between}
+.ph-temp{height:180px}
+.ph-temp small,.ph-light small{display:block;font:500 24px/1.3 var(--f-ui);color:var(--muted)}
+.ph-temp strong{display:block;font:800 66px/1.05 var(--f-ui);letter-spacing:-.02em}
+.ph-light{height:150px}
+.ph-light b{display:block;font:700 32px/1.2 var(--f-ui)}
+.ph-foot{height:90px;font:500 22px/1 var(--f-ui);color:var(--muted);justify-content:center}
+.toggle{width:100px;height:56px;border-radius:28px;background:var(--border);position:relative;transition:background .3s;flex:none}
+.toggle::after{content:"";position:absolute;left:7px;top:7px;width:42px;height:42px;border-radius:50%;background:var(--muted);transition:left .35s,background .35s}
+.toggle.on{background:color-mix(in srgb,var(--teal) 40%,transparent)}
+.toggle.on::after{left:51px;background:var(--teal)}
+.grp{border:2px dashed var(--border-2);border-radius:30px}
+.grp span{position:absolute;left:28px;top:-19px;background:var(--bg);padding:4px 12px;font:700 22px/1 var(--f-mono);letter-spacing:.12em;color:var(--green)}
+.qbub{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:2px solid var(--border-2);font:700 24px/1 var(--f-ui);color:var(--muted)}
+
+/* cena 1: restaurante */
+.wall{height:24px;border-radius:6px;background:repeating-linear-gradient(90deg,var(--border) 0 34px,var(--bg-2) 34px 38px);box-shadow:inset 0 -6px 0 rgba(0,0,0,.25);transition:opacity .5s,translate .5s,left .9s ease,width .9s ease}
+.xmark{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:3px solid var(--red);color:var(--red);font:800 22px/1 var(--f-ui)}
+.wnode{display:flex;align-items:center;gap:12px}
+.wnode .dot{width:56px;height:56px;border:2.5px solid var(--purple);background:var(--bg)}
+.wnode .dot svg{width:32px;height:32px}
+.tagp{font:700 22px/1 var(--f-mono);color:var(--purple);border:2px solid color-mix(in srgb,var(--purple) 55%,transparent);border-radius:10px;padding:8px 12px;background:var(--bg)}
+
+/* cena 2: cardápio */
+.menu{background:var(--card);border:1.5px solid color-mix(in srgb,var(--orange) 45%,var(--border));border-radius:26px;padding:24px;display:grid;gap:12px}
+.mh{display:flex;align-items:center;gap:14px;font:800 34px/1 var(--f-ui)}
+.mic{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--orange) 16%,transparent);color:var(--orange);flex:none}
+.mic svg{width:26px;height:26px}
+.ms{font:500 22px/1.2 var(--f-ui);color:var(--orange);margin:-4px 0 6px}
+.mi{display:flex;align-items:center;gap:16px;height:84px;padding:0 18px;border-radius:16px;background:var(--bg-2);border:1.5px solid var(--border);font:700 29px/1 var(--f-ui)}
+.mi .b{display:none;font:600 25px/1 var(--f-mono)}
+.menu.doc .mi .a{display:none}
+.menu.doc .mi .b{display:inline}
+.pill{display:flex;align-items:center;gap:12px;height:58px;padding:0 20px;border-radius:14px;background:var(--bg);border:2px solid var(--border-2);font:700 24px/1 var(--f-mono)}
+.pill svg{width:26px;height:26px;color:var(--orange)}
+
+/* cartões de código e afins */
+.code{background:var(--card);border:1.5px solid var(--border);border-radius:22px;padding:22px 26px;font:500 25px/1.55 var(--f-mono);color:var(--text)}
+.tag{display:block;font:700 18px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin-bottom:12px}
+.code .k{color:var(--orange);font-weight:700}
+.code .ok{color:var(--teal);font-weight:700}
+.code s{text-decoration:none;color:var(--muted)}
+.code i{font-style:normal;color:var(--orange)}
+.stack{display:grid;gap:10px}
+.cchip{display:flex;align-items:center;gap:12px;font:600 22px/1 var(--f-mono);padding:12px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--card);color:var(--muted)}
+.cchip b{color:var(--c);font-weight:700}
+.verbs{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:940px}
+.verb{display:flex;align-items:center;gap:16px;height:68px;padding:0 22px;border-radius:16px;border:1.5px solid var(--border);background:var(--card);font:600 26px/1 var(--f-ui);color:var(--muted)}
+.verb b{font:700 25px/1 var(--f-mono);color:var(--orange);min-width:110px}
+.banner{width:940px;padding:26px 30px;border-radius:22px;border:2px solid var(--orange);background:color-mix(in srgb,var(--orange) 8%,var(--card));font:600 30px/1.35 var(--f-ui);color:var(--text)}
+.banner b{color:var(--orange)}
+.stats{width:940px;padding:26px 30px;border-radius:22px;border:1.5px solid var(--border);background:var(--card);font:600 28px/1.3 var(--f-ui)}
+.stats .nums{display:flex;justify-content:space-between}
+.stats b{font:700 40px/1 var(--f-mono);color:var(--orange)}
+.stats .meter{height:14px;border-radius:7px;background:var(--border);overflow:hidden;margin:18px 0 10px}
+.stats .meter i{display:block;height:100%;width:0;background:var(--red);transition:width .4s}
+.stats small{font:600 20px/1 var(--f-mono);color:var(--muted);letter-spacing:.06em}
+.bubble{width:940px;padding:24px 30px;border-radius:22px;border:1.5px solid var(--border);background:var(--card);font:600 30px/1.55 var(--f-ui);color:var(--muted)}
+.bubble em{font-style:normal;color:var(--text)}
+.acard{display:flex;align-items:center;gap:20px;padding:0 24px;border-radius:24px;border:1.5px solid var(--border);background:var(--card)}
+.acard .dot{width:64px;height:64px}
+.acard .dot svg{width:34px;height:34px}
+.acard b{display:block;font:800 31px/1.1 var(--f-ui)}
+.acard span{display:block;font:500 22px/1.3 var(--f-ui);color:var(--muted);margin-top:4px}
+.urls{display:flex;gap:14px;width:940px}
+.uchip{font:600 23px/1 var(--f-mono);padding:16px 18px;border-radius:14px;border:1.5px solid var(--border-2);background:var(--card)}
+.uchip.on{border-color:var(--teal);color:var(--teal)}
+.note{width:940px;padding:24px 30px;border-radius:22px;border:2px solid var(--purple);background:color-mix(in srgb,var(--purple) 8%,var(--card));font:600 29px/1.35 var(--f-ui)}
+.note b{color:var(--purple)}
+
+/* cena de detalhes do MQTT */
+.tree{width:470px;padding:22px 24px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);font:600 26px/1 var(--f-mono)}
+.tree .tr{height:46px;display:flex;align-items:center;white-space:pre;border-radius:10px;padding:0 10px;transition:background .35s,color .35s;color:var(--text)}
+.tree .tr .pre{color:var(--faint)}
+.tree .tr.hl{background:var(--orange);color:var(--bg)}
+.tree .tr.hl .pre{color:color-mix(in srgb,var(--bg) 60%,transparent)}
+.wild{width:430px;padding:22px 24px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);display:grid;gap:12px}
+.wild code{font:700 25px/1 var(--f-mono);color:var(--teal)}
+.wild span{font:500 23px/1.3 var(--f-ui);color:var(--muted)}
+.wild.on{border-color:var(--orange)}
+.wild.on code{color:var(--orange)}
+.qos{width:290px;height:220px;padding:24px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);display:flex;flex-direction:column;gap:8px}
+.qos b{font:800 46px/1 var(--f-ui);color:var(--orange)}
+.qos span{font:700 25px/1.2 var(--f-ui)}
+.qos small{font:500 20px/1.3 var(--f-ui);color:var(--muted)}
+.trick{width:455px;height:190px;padding:24px 26px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);font:500 23px/1.35 var(--f-ui);color:var(--muted)}
+.trick b{display:block;font:800 31px/1 var(--f-ui);color:var(--text);margin-bottom:10px}
+.fact{width:940px;height:190px;display:flex;align-items:center;gap:30px;padding:0 34px;border-radius:24px;border:2px solid var(--orange);background:color-mix(in srgb,var(--orange) 8%,var(--card));font:500 25px/1.4 var(--f-ui);color:var(--muted)}
+.fact strong{font:800 84px/1 var(--f-ui);color:var(--orange);letter-spacing:-.03em;flex:none}
+.vs{width:455px;padding:26px;border-radius:24px;border:1.5px solid var(--border);background:var(--card)}
+.vs .tag{color:var(--c)}
+.vs h3{margin:0 0 10px;font:800 46px/1 var(--f-ui);letter-spacing:-.02em}
+.vs .row{padding:13px 0;border-top:1px solid var(--border);font:500 24px/1.3 var(--f-ui);color:var(--muted)}
+.vs .row b{color:var(--text)}
+.node{width:128px;height:128px;border-radius:50%;display:grid;place-items:center;background:var(--card);border:3px solid var(--c);color:var(--c)}
+.node svg{width:60px;height:60px}
+.node em{position:absolute;top:calc(100% + 14px);left:50%;translate:-50% 0;font:700 26px/1 var(--f-ui);font-style:normal;color:var(--text);white-space:nowrap}
+.wl{width:280px;text-align:center;font:600 21px/1.2 var(--f-mono);color:var(--muted)}
+.wl b{color:var(--teal)}
+
+/* placa ESP32 */
+.boardsvg .b-pcb{fill:#101216;stroke:var(--border-2);stroke-width:2}
+.boardsvg .b-pin{fill:#E1B860}
+.boardsvg .b-mod{fill:#1A1D23;stroke:var(--border-2);stroke-width:2}
+.boardsvg .b-ant{fill:none;stroke:#C8834A;stroke-width:5;stroke-linejoin:round}
+.boardsvg .b-can{fill:#AEB4BA;stroke:#D5DADF;stroke-width:2}
+.boardsvg .b-cantext{font:700 17px var(--f-mono);fill:#262A31;text-anchor:middle}
+.boardsvg .b-cantext.sm{font:600 13px var(--f-mono)}
+.boardsvg .b-ic{fill:#0B0C0F;stroke:#3A3F4B;stroke-width:2}
+.boardsvg .b-btn{fill:#C9CDD2}
+.boardsvg .b-btncap{fill:#2A2E35}
+.boardsvg .b-usb{fill:#B9BFC5;stroke:#E2E6EA;stroke-width:2}
+.boardsvg .b-led{fill:#4A2522;transition:fill .3s,filter .3s}
+.boardsvg.on .b-led{fill:var(--red);filter:drop-shadow(0 0 12px var(--red))}
+.boardsvg .b-silk{font:600 13px var(--f-mono);fill:var(--muted);text-anchor:middle;letter-spacing:.08em}
+.boardsvg .b-silk.lg{font-size:15px}
+.boardsvg .b-call{fill:none;stroke:var(--faint);stroke-width:1.5;stroke-dasharray:4 4}
+.boardsvg .b-ctext{font:700 19px var(--f-ui);fill:var(--text);text-anchor:middle}
+
+.mini{width:370px;height:130px;padding:20px 24px;border-radius:24px;border:1.5px solid var(--border);background:var(--card);font:600 24px/1.4 var(--f-mono);display:flex;flex-direction:column;justify-content:center}
+.mini .tag{margin-bottom:6px}
+.mini .bar{height:10px;border-radius:5px;background:var(--border);overflow:hidden;margin:6px 0 8px}
+.mini .bar i{display:block;height:100%;background:var(--orange);transition:width .5s}
+.ledrow{color:var(--faint)}
+.ledrow.on{color:var(--red)}
+.flow{width:940px;height:110px;display:flex;align-items:center;gap:0}
+.flow .fp{display:flex;align-items:center;gap:12px;height:64px;padding:0 20px;border-radius:999px;border:2px solid var(--c);color:var(--c);font:700 24px/1 var(--f-ui);background:var(--bg);flex:none}
+.flow .fp svg{width:28px;height:28px}
+.flow .fl{flex:1;height:3px;background:var(--purple);position:relative}
+.flow .fl span{position:absolute;left:50%;top:50%;translate:-50% -50%;font:700 18px/1 var(--f-mono);color:var(--purple);background:var(--bg);padding:6px 8px;border:2px solid color-mix(in srgb,var(--purple) 55%,transparent);border-radius:8px}
+.flow .fh{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;border:3px solid var(--purple);color:var(--purple);background:var(--bg);flex:none}
+.flow .fh svg{width:38px;height:38px}
+.cta{display:grid;gap:18px;width:560px}
+.cta a,.cta button{display:flex;justify-content:center;align-items:center;gap:12px;height:84px;border-radius:999px;font:800 30px/1 var(--f-ui);text-decoration:none;cursor:pointer;border:2px solid var(--border-2);background:var(--card);color:var(--text)}
+.cta a.solid{background:var(--orange);border-color:var(--orange);color:var(--bg)}
+.cta svg{width:30px;height:30px}
+.endcard{display:flex;align-items:center;gap:24px}
+.endcard .av{width:118px;height:118px;border-radius:50%;display:grid;place-items:center;border:4px solid var(--orange);background:var(--card);color:var(--orange)}
+.endcard .av svg{width:62px;height:62px}
+.endcard b{display:block;font:800 40px/1.1 var(--f-ui)}
+.endcard small{display:block;font:500 25px/1.3 var(--f-ui);color:var(--muted)}
+
+/* quiz */
+.quiz{width:940px}
+.qz-head{display:flex;justify-content:space-between}
+.quiz h3{margin:6px 0 30px;font:800 46px/1.2 var(--f-ui);letter-spacing:-.015em;text-wrap:balance}
+.qz-opts{display:grid;gap:16px}
+.qopt{display:flex;align-items:center;gap:20px;text-align:left;font:600 30px/1.25 var(--f-ui);color:var(--text);background:var(--card);border:2px solid var(--border);border-radius:22px;padding:20px 24px;cursor:pointer;min-height:110px}
+.qopt b{display:grid;place-items:center;flex:none;width:52px;height:52px;border-radius:50%;border:2px solid var(--border-2);font:700 23px/1 var(--f-mono);color:var(--muted)}
+.qopt:hover:not(:disabled){border-color:var(--orange)}
+.qopt:disabled{cursor:default}
+.qopt.right{border-color:var(--teal);background:color-mix(in srgb,var(--teal) 12%,var(--card))}
+.qopt.right b{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+.qopt.wrong{border-color:var(--red);background:color-mix(in srgb,var(--red) 12%,var(--card))}
+.qopt.wrong b{background:var(--red);border-color:var(--red);color:var(--bg)}
+.qz-fb{min-height:130px;margin:26px 0 10px;font:500 28px/1.45 var(--f-ui);color:var(--muted)}
+.qz-fb b{color:var(--text)}
+.qbtn{display:inline-flex;justify-content:center;align-items:center;height:84px;padding:0 40px;border-radius:999px;font:800 30px/1 var(--f-ui);border:2px solid var(--border-2);background:var(--card);color:var(--text);cursor:pointer;text-decoration:none}
+.qbtn.solid{background:var(--orange);border-color:var(--orange);color:var(--bg)}
+.qz-end{display:grid;justify-items:center;gap:12px;text-align:center;padding-top:40px}
+.qz-score{font:800 240px/1 var(--f-ui);color:var(--orange);letter-spacing:-.04em}
+.qz-score small{font-size:110px;color:var(--faint)}
+.qz-end p{font:500 32px/1.4 var(--f-ui);margin:0 0 30px;color:var(--muted);max-width:820px}
+.qz-actions{display:grid;gap:16px;width:600px}
+
+.bigplay{position:absolute;left:50%;top:1420px;translate:-50% 0;display:inline-flex;align-items:center;gap:18px;font:800 40px/1 var(--f-ui);background:var(--orange);color:var(--bg);padding:28px 48px;border-radius:999px;border:0;cursor:pointer;box-shadow:0 0 0 12px color-mix(in srgb,var(--orange) 20%,transparent),0 30px 60px -20px #000;z-index:6}
+.bigplay svg{width:38px;height:38px}
+.started .bigplay{display:none}
+
+@media (prefers-reduced-motion:reduce){.c,.rv,.link,.phone,.wall{transition-duration:.01s!important}.w,.swap,.sub.in,.flash,.r.on .ans{animation:none!important}}
+
+/* ---------- formato 16:9 (1920×1080): texto e tabela à esquerda, diagrama à direita ---------- */
+.f16 .app{grid-template-columns:minmax(0,1fr) minmax(280px,360px)}
+.f16 .screen{height:auto;width:min(100%, calc((100vh - 32px) * 16 / 9));width:min(100%, calc((100dvh - 32px) * 16 / 9));aspect-ratio:16/9;justify-self:center}
+.f16 .stage,.f16 #bg,.f16 #edge,.f16 #wires,.f16 #layer,.f16 #pkts{width:1920px;height:1080px}
+.f16 .profile{left:80px;top:40px;translate:none}
+.f16 .hd{left:80px;top:128px;width:760px;gap:10px}
+.f16 .hd.center,.f16 .hd.hero{align-items:flex-start;text-align:left}
+.f16 .hd.hero{top:230px}
+.f16 .eyebrow{font-size:20px}
+.f16 .headline{font-size:66px}
+.f16 .hero .headline .l1{font-size:78px}
+.f16 .hero .headline .l2{font-size:124px}
+.f16 .sub{font-size:29px;max-width:760px}
+.f16 .bigplay{left:80px;top:800px;translate:none}
+.f16 .tbl{width:760px;padding:14px 20px 12px}
+.f16 .trow{height:58px;font-size:26px}
+.f16 .th{font-size:17px}
+.f16 .quiz h3{font-size:42px;margin-bottom:22px}
+.f16 .qopt{min-height:96px;padding:16px 22px;font-size:28px}
+.f16 .qz-fb{min-height:96px;margin-top:18px}
+.f16.rec .app{grid-template-columns:auto;justify-content:center;align-content:center}
+.f16.rec .screen{width:min(100vw, calc(100vh * 16 / 9));width:min(100vw, calc(100dvh * 16 / 9));height:auto}
+@media (max-width:860px),(max-aspect-ratio:1/1){
+  .f16 .app{grid-template-columns:minmax(0,1fr)}
+  .f16 .screen{width:100%}
+}
+/* exportação de vídeo: sem avisos por cima */
+.exportando .toast{display:none!important}
+
+/* ---------- narração e gravação da voz ---------- */
+[hidden]{display:none!important}
+.sbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text);font:600 13.5px/1 var(--f-ui);cursor:pointer}
+.sbtn:hover:not(:disabled){border-color:var(--orange)}
+.sbtn:disabled{opacity:.45;cursor:default}
+.sbtn.red{background:var(--red);border-color:var(--red);color:var(--bg)}
+.sbtn svg{width:18px;height:18px}
+.sbtn.wide{width:100%}
+.recpanel{display:grid;gap:10px}
+.rp-head{display:flex;justify-content:space-between;align-items:center;font:700 15px/1.2 var(--f-ui)}
+.rp-live{display:none;font:700 12px/1 var(--f-mono);letter-spacing:.08em;color:var(--red)}
+.recording .rp-live{display:inline}
+.rp-steps{margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.55}
+.rp-steps b,.rp-steps code{color:var(--text)}
+.rp-steps code{font:500 12px var(--f-mono)}
+.rp-steps kbd,.rp-note kbd{font:500 11.5px var(--f-mono);border:1px solid var(--border);border-radius:4px;padding:0 4px;color:var(--text)}
+.rp-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.rp-note{margin:0;font:500 12.5px/1.45 var(--f-ui);color:var(--muted)}
+.rp-note b{color:var(--text)}
+.rp-meter{height:6px;border-radius:3px;background:var(--border);overflow:hidden}
+.rp-meter i{display:block;height:100%;width:0;background:var(--green);transition:width .08s}
+.waiting #whereBeat{color:var(--orange)}
+.recording .screen{box-shadow:0 0 0 3px var(--red),0 30px 80px -30px #000}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="screen" id="screen">
+    <div class="stage" id="stage">
+      <canvas id="bg" aria-hidden="true"></canvas>
+      <svg id="edge" viewBox="0 0 1080 1920" aria-hidden="true"><path id="edgePath" class="edge-path" d=""/><circle id="edgeHead" class="edge-head" r="9" cx="-20" cy="-20"/></svg>
+      <div class="edge-node" id="edgeNode" aria-hidden="true"></div>
+      <svg id="wires" viewBox="0 0 1080 1920" aria-hidden="true"></svg>
+      <div id="layer"></div>
+      <div id="pkts" aria-hidden="true"></div>
+      <div class="profile" id="profile"></div>
+      <div class="hd" id="hd">
+        <div class="eyebrow" id="eyebrow"></div>
+        <h2 class="headline" id="headline"></h2>
+        <p class="sub" id="sub" aria-live="polite"></p>
+      </div>
+      <button class="bigplay" id="bigplay" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="currentColor"/></svg>Assistir à aula</button>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div class="brand">
+      <span class="kicker">Vídeo didático · 9:16</span>
+      <h1>Como as coisas <em>conversam</em></h1>
+      <p>API, WebSocket e MQTT explicados com um restaurante, um canal de vídeos e um ESP32. A narração lê cada legenda e o vídeo avança sozinho.</p>
+    </div>
+
+    <div class="panel">
+      <div class="controls" role="group" aria-label="Controles do vídeo">
+        <button class="cbtn" id="prevCh" type="button" aria-label="Capítulo anterior" title="Capítulo anterior (Shift + ←)"><svg viewBox="0 0 24 24"><path d="M6 5v14M19 5L9 12l10 7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+        <button class="cbtn" id="prevBeat" type="button" aria-label="Trecho anterior" title="Trecho anterior (←)"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="cbtn main" id="play" type="button" aria-label="Reproduzir" title="Reproduzir / pausar (espaço)"><svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+        <button class="cbtn" id="nextBeat" type="button" aria-label="Próximo trecho" title="Próximo trecho (→)"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="cbtn" id="nextCh" type="button" aria-label="Próximo capítulo" title="Próximo capítulo (Shift + →)"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg></button>
+      </div>
+      <div class="progress" id="progress" aria-label="Capítulos"></div>
+      <div class="where"><span id="whereCh"></span><span id="whereBeat"></span></div>
+    </div>
+
+    <div class="opts">
+      <select id="modeSel" aria-label="Quem narra" title="Quem narra (V alterna)" style="flex:1 1 100%">
+        <option value="tts">Narração: voz do navegador</option>
+        <option value="mine">Narração: minha voz gravada</option>
+        <option value="live">Ao vivo: eu falo e aperto →</option>
+        <option value="mute">Sem voz: só legenda</option>
+      </select>
+      <select id="fmtSel" aria-label="Formato do vídeo" title="Formato do vídeo" style="flex:1 1 100%">
+        <option value="9x16">Formato 9:16 · vertical (TikTok, Reels)</option>
+        <option value="16x9">Formato 16:9 · Canva, YouTube, projetor</option>
+      </select>
+      <select id="voiceSel" aria-label="Voz do navegador"></select>
+      <select id="speedSel" aria-label="Velocidade" style="flex:0 0 84px">
+        <option value="0.85">0,85×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.15">1,15×</option>
+        <option value="1.3">1,3×</option>
+      </select>
+      <button class="cbtn" id="fsBtn" type="button" aria-label="Tela cheia" title="Tela cheia (F)"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="cbtn" id="recBtn" type="button" aria-label="Modo gravação de tela" title="Modo gravação de tela: só o vídeo (H)"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg></button>
+    </div>
+    <p class="rp-note" id="modeNote" hidden></p>
+
+    <button class="sbtn wide" id="recOpen" type="button" aria-expanded="false" aria-controls="recPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Gravar minha voz</button>
+    <div class="panel recpanel" id="recPanel" hidden>
+      <div class="rp-head">Gravar minha voz <span class="rp-live">● REC <span id="recId"></span></span></div>
+      <ol class="rp-steps">
+        <li>Escolha a pasta <code>audio</code> do projeto para salvar os arquivos.</li>
+        <li>Vá até o trecho onde quer começar e aperte <b>Gravar</b>.</li>
+        <li>Leia a legenda do vídeo enquanto a cena anima. Terminou o trecho? Aperte <kbd>→</kbd>.</li>
+        <li><kbd>←</kbd> volta para regravar. <kbd>Esc</kbd> encerra.</li>
+      </ol>
+      <div class="rp-row"><button class="sbtn" id="dirBtn" type="button">Escolher pasta audio</button><span class="rp-note" id="dirName">Sem pasta: as gravações ficam só neste navegador.</span></div>
+      <div class="rp-row"><button class="sbtn red" id="recStart" type="button">● Gravar deste trecho</button><button class="sbtn" id="recStop" type="button" disabled>■ Encerrar</button></div>
+      <div class="rp-meter" aria-hidden="true"><i id="recBar"></i></div>
+      <p class="rp-note" id="recStatus"></p>
+      <button class="sbtn" id="recDl" type="button">Baixar gravações</button>
+    </div>
+
+    <ol class="chapters" id="chapters"></ol>
+    <a class="lab-link" id="labLink" href="https://luctrevisan.github.io/kit_iot/" target="_blank" rel="noopener">Abrir o laboratório XR <span aria-hidden="true">→</span></a>
+    <p class="keys"><kbd>espaço</kbd> play/pausa · <kbd>←</kbd> <kbd>→</kbd> trechos · <kbd>Shift</kbd>+<kbd>→</kbd> capítulos · <kbd>F</kbd> tela cheia · <kbd>V</kbd> narrador · <kbd>H</kbd> só o vídeo · <kbd>Esc</kbd> para a gravação</p>
+  </aside>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Como as coisas conversam — vídeo didático interativo (formato 9:16)
+   Cada cena tem "trechos" (beats): uma frase de narração + uma ação no
+   palco. O player fala a frase (Web Speech API) e só avança quando ela
+   termina, então animação e narração ficam sempre sincronizadas.
+
+   Para personalizar o selo do topo, troque os textos de PERFIL.
+   ===================================================================== */
+const PERFIL = { nome: 'Aula de IoT', linha: 'API · MQTT · WebSocket · ESP32' };
+const LAB_URL = 'https://luctrevisan.github.io/kit_iot/'; // botões "Abrir o laboratório XR"
+
+const $ = (q, r = document) => r.querySelector(q);
+const stageEl = $('#stage'), layer = $('#layer'), wiresSvg = $('#wires'), pktLayer = $('#pkts');
+const screenEl = $('#screen');
+let W = 1080, H = 1920; // palco: 1080×1920 (9:16) ou 1920×1080 (16:9)
+const FMT = { v: '9x16' };
+const is16 = () => FMT.v === '16x9';
+const fmt = n => n.toFixed(1).replace('.', ',');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ---------- ícones (traço fino, estilo interface) ---------- */
+const sv = p => `<svg class="ic" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const IC = {
+  user: sv('<circle cx="32" cy="22" r="10"/><path d="M13 55c2-11 10-17 19-17s17 6 19 17"/>'),
+  waiter: sv('<circle cx="20" cy="20" r="8"/><path d="M6 56c1-11 6-17 14-17s13 6 14 17"/><path d="M17 38l3 3 3-3"/><path d="M33 31h29"/><path d="M36 31a11 10 0 0 1 22 0"/><path d="M47 21v-3"/><path d="M31 46l6-15"/>'),
+  pot: sv('<path d="M12 32h40v14a7 7 0 0 1-7 7H19a7 7 0 0 1-7-7z"/><path d="M8 32h48"/><path d="M12 37H6M52 37h6"/><path d="M24 24c-3-4 3-6 0-10M32 24c-3-4 3-6 0-10M40 24c-3-4 3-6 0-10"/>'),
+  hat: sv('<path d="M20 40h24v12H20z"/><path d="M20 40c-7-1-10-10-4-15 0-8 10-11 15-5 4-6 14-4 15 3 8 2 9 13 0 17"/>'),
+  plate: sv('<circle cx="32" cy="32" r="22" stroke-dasharray="5 6"/>'),
+  server: sv('<rect x="12" y="9" width="40" height="13" rx="3"/><rect x="12" y="26" width="40" height="13" rx="3"/><rect x="12" y="43" width="40" height="13" rx="3"/><path d="M30 15.5h14M30 32.5h14M30 49.5h14"/><circle cx="19.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="19.5" cy="32.5" r="1.6" fill="currentColor"/><circle cx="19.5" cy="49.5" r="1.6" fill="currentColor"/>'),
+  phone: sv('<rect x="19" y="6" width="26" height="52" rx="5"/><path d="M28 50h8"/>'),
+  browser: sv('<rect x="6" y="10" width="52" height="44" rx="4"/><path d="M6 20h52"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/><circle cx="17" cy="15" r="1.4" fill="currentColor"/><path d="M32 26l10 5v11l-10 5-10-5V31z"/><path d="M22 31l10 5 10-5M32 36v11"/>'),
+  headset: sv('<path d="M9 22h46a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5H43l-5-6H26l-5 6H9a5 5 0 0 1-5-5V27a5 5 0 0 1 5-5z"/><path d="M15 22l4-7h26l4 7"/>'),
+  esp: sv('<rect x="16" y="12" width="32" height="42" rx="2"/><rect x="22" y="28" width="20" height="20" rx="1"/><path d="M21 22v-5h4v5h4v-5h4v5h4v-5h4v5"/><path d="M16 22h-7M16 30h-7M16 38h-7M16 46h-7M48 22h7M48 30h7M48 38h7M48 46h7"/>'),
+  hub: sv('<circle cx="32" cy="32" r="9"/><circle cx="10" cy="13" r="4"/><circle cx="54" cy="13" r="4"/><circle cx="10" cy="51" r="4"/><circle cx="54" cy="51" r="4"/><path d="M13 16l12 9M51 16l-12 9M13 48l12-9M51 48l-12-9"/>'),
+  thermo: sv('<path d="M27 38V12a5 5 0 0 1 10 0v26a9 9 0 1 1-10 0z"/><path d="M32 44V22"/>'),
+  sun: sv('<circle cx="32" cy="32" r="9"/><path d="M32 8v6M32 50v6M8 32h6M50 32h6M15 15l4 4M45 45l4 4M49 15l-4 4M19 45l-4 4"/>'),
+  knob: sv('<circle cx="32" cy="34" r="15"/><path d="M32 34l9-9"/><path d="M14 50l-4 4M50 50l4 4M32 13V8"/>'),
+  led: sv('<path d="M22 32a10 10 0 0 1 20 0v12H22z"/><path d="M17 44h30"/><path d="M28 44v12M36 44v8"/>'),
+  call: sv('<path d="M17 9h8l4 11-5 4a27 27 0 0 0 16 16l4-5 11 4v8a4 4 0 0 1-4 4C28 51 13 36 13 13a4 4 0 0 1 4-4z"/>'),
+  menu: sv('<rect x="14" y="7" width="36" height="50" rx="3"/><path d="M22 19h20M22 29h20M22 39h12"/>'),
+  doc: sv('<path d="M18 8h20l10 10v38H18z"/><path d="M38 8v10h10M24 30h18M24 38h18M24 46h12"/>'),
+  fork: sv('<path d="M20 8v16a6 6 0 0 0 12 0V8M26 8v48M44 8c-5 4-6 14-6 22h6v26"/>'),
+  pizza: sv('<path d="M10 14l44 6-28 34z"/><circle cx="28" cy="24" r="3"/><circle cx="33" cy="35" r="3"/>'),
+  soup: sv('<path d="M8 30h48a24 24 0 0 1-48 0z"/><path d="M24 22c-2-3 2-5 0-8M34 22c-2-3 2-5 0-8"/>'),
+  leaf: sv('<path d="M14 50C14 26 30 12 52 12c0 22-14 38-38 38z"/><path d="M14 50L36 28"/>'),
+  play: sv('<rect x="7" y="15" width="50" height="34" rx="9"/><path d="M28 25v14l12-7z"/>'),
+  folder: sv('<path d="M8 18h18l6 6h24v28H8z"/>'),
+  duplex: sv('<path d="M20 52V12M20 12l-8 8M20 12l8 8M44 12v40M44 52l-8-8M44 52l8-8"/>'),
+  sheet: sv('<rect x="10" y="10" width="44" height="44" rx="3"/><path d="M10 24h44M10 38h44M26 10v44"/>'),
+  bookmark: sv('<path d="M18 8h28v48L32 46 18 56z"/>'),
+  check: sv('<path d="M14 34l12 12 24-26"/>'),
+  lock: sv('<rect x="14" y="28" width="36" height="26" rx="4"/><path d="M22 28v-8a10 10 0 0 1 20 0v8"/>'),
+  arrow: sv('<path d="M12 32h38M38 20l12 12-12 12"/>'),
+};
+
+/* ---------- construtores de marcação (posições em px do palco 1080×1920) ---------- */
+const dot = (ic, color, size = '') => `<i class="dot ${color} ${size}">${IC[ic]}</i>`;
+const art = ic => `<span class="art">${IC[ic]}</span>`;
+function el(id, x, y, cls, inner = '', style = '') {
+  return `<div class="c ${cls} hid" data-id="${id}" style="left:${x}px;top:${y}px;${style}">${inner}</div>`;
+}
+function ucard(id, x, y, w, h, color, lead, title, sub, tail = '', cls = '') {
+  return `<div class="c ucard ${color} ${cls} hid" data-id="${id}" style="left:${x}px;top:${y}px;width:${w}px;height:${h}px">${lead}<span class="txt"><b data-id="${id}-t">${title}</b><small data-id="${id}-s">${sub}</small></span>${tail}</div>`;
+}
+// tabela de analogias: cada linha = [ícone, cor, texto] → [ícone, cor, texto]
+function table(id, x, y, heads, rows) {
+  return `<div class="c tbl hid" data-id="${id}" style="left:${x}px;top:${y}px">
+    <div class="th"><span>${heads[0]}</span><span></span><span>${heads[1]}</span></div>
+    ${rows.map((r, i) => `<div class="trow rv hid" data-id="${id}${i}"><span class="cell">${dot(r[0], r[1])}${r[2]}</span><span class="ar">→</span><span class="cell r" data-id="${id}${i}r"><span class="q">?</span><span class="ans">${dot(r[3], r[4])}${r[5]}</span></span></div>`).join('')}
+  </div>`;
+}
+function curve(a, b, vertical) {
+  const [x1, y1] = a, [x2, y2] = b;
+  if (vertical) { const m = (y1 + y2) / 2; return `M${x1} ${y1}C${x1} ${m} ${x2} ${m} ${x2} ${y2}`; }
+  const m = (x1 + x2) / 2; return `M${x1} ${y1}C${m} ${y1} ${m} ${y2} ${x2} ${y2}`;
+}
+
+/* ---------- relógio de reprodução (congela quando pausa) ---------- */
+const clock = { t: 0, playing: false, speed: 1, timers: new Set(), last: performance.now() };
+function schedule(ms, fn, owner, every) { const t = { at: clock.t + ms, fn, owner, every }; clock.timers.add(t); return t; }
+function clearOwner(owner) { for (const t of clock.timers) if (t.owner === owner) clock.timers.delete(t); }
+const waitPlay = ms => new Promise(res => schedule(ms, res, 'player'));
+
+/* ---------- linha de progresso que contorna a borda ---------- */
+const EDGE = {
+  '9x16': { L: 'M34 150V1830Q34 1880 84 1880H996Q1046 1880 1046 1830V1520', R: 'M1046 150V1830Q1046 1880 996 1880H84Q34 1880 34 1830V1520', top: 150, xr: 1046 },
+  '16x9': { L: 'M34 110V1000Q34 1046 84 1046H1836Q1886 1046 1886 1000V720', R: 'M1886 110V1000Q1886 1046 1836 1046H84Q34 1046 34 1000V720', top: 110, xr: 1886 },
+};
+const edge = { path: $('#edgePath'), head: $('#edgeHead'), node: $('#edgeNode'), len: 1, cur: 0, target: 0 };
+function setEdge(si, frac, reset) {
+  if (reset) {
+    const right = si % 2 === 1, E = EDGE[FMT.v], x0 = right ? E.xr : 34;
+    edge.path.setAttribute('d', right ? E.R : E.L);
+    edge.len = edge.path.getTotalLength();
+    edge.cur = 0;
+    edge.path.style.strokeDasharray = `0 ${edge.len + 20}`;
+    edge.head.setAttribute('cx', x0); edge.head.setAttribute('cy', E.top);
+    edge.node.style.left = x0 - 26 + 'px';
+    edge.node.style.top = E.top - 26 + 'px';
+    edge.node.innerHTML = IC[SCENES[si].node] || '';
+  }
+  edge.target = frac;
+}
+
+function frame(now) {
+  const dt = Math.min(100, now - clock.last); clock.last = now;
+  if (clock.playing) {
+    clock.t += dt * clock.speed;
+    for (const t of [...clock.timers]) {
+      if (!clock.timers.has(t) || t.at > clock.t) continue;
+      if (t.every) t.at += t.every; else clock.timers.delete(t);
+      try { t.fn(); } catch (e) { console.error(e); }
+    }
+  }
+  // exportação em câmera lenta: todas as animações (CSS e WAAPI) andam na mesma velocidade do relógio
+  if (clock.sync) for (const a of document.getAnimations()) if (a.playbackRate !== clock.speed) a.playbackRate = clock.speed;
+  if (Math.abs(edge.target - edge.cur) > .0005) {
+    edge.cur += (edge.target - edge.cur) * Math.min(1, dt * (clock.sync ? clock.speed : 1) / 420);
+    const L = edge.len * edge.cur;
+    edge.path.style.strokeDasharray = `${L} ${edge.len + 20}`;
+    const p = edge.path.getPointAtLength(Math.max(.01, L));
+    edge.head.setAttribute('cx', p.x); edge.head.setAttribute('cy', p.y);
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------- o palco de uma cena ---------- */
+class Stage {
+  constructor(sc) { this.sc = sc; this.dead = false; this.instant = false; this.state = {}; this.dx = 0; this.dy = 0; }
+  // no 16:9, o diagrama da cena vai para a coluna da direita (desloca tudo de dx, dy),
+  // as tabelas vão para a coluna da esquerda e alguns elementos têm posição própria (f16.pos)
+  relayout16() {
+    const f = this.sc.f16 || {};
+    this.dx = f.dx ?? 830; this.dy = f.dy ?? -400;
+    layer.querySelectorAll(':scope > .c').forEach(e => {
+      const o = f.pos?.[e.dataset.id];
+      if (o) { e.style.left = o[0] + 'px'; e.style.top = o[1] + 'px'; if (o[2]) e.style.cssText += ';' + o[2]; return; }
+      if (e.classList.contains('tbl')) { e.style.left = '80px'; e.style.top = (f.tblTop || 500) + 'px'; return; }
+      e.style.left = parseFloat(e.style.left) + this.dx + 'px';
+      e.style.top = parseFloat(e.style.top) + this.dy + 'px';
+    });
+  }
+  tp([x, y]) { return [x + this.dx, y + this.dy]; }
+  build() {
+    layer.innerHTML = this.sc.html();
+    if (is16()) this.relayout16();
+    pktLayer.innerHTML = '';
+    let svg = '';
+    for (const w of (this.sc.wires || [])) {
+      let d = w.d;
+      if (!d && w.pts) d = 'M' + w.pts.map(p => this.tp(p).join(' ')).join('L');
+      if (!d) {
+        const a = this.anchor(w.from), b = this.anchor(w.to);
+        const side = typeof w.from[0] === 'string' ? w.from[1] : 'bottom';
+        d = curve(a, b, side === 'top' || side === 'bottom');
+      }
+      const dash = /dotted|pipe|core/.test(w.cls || '');
+      svg += `<path data-id="${w.id}" class="link ${w.cls || ''} hid" d="${d}"${dash ? '' : ' pathLength="1"'}/>`;
+    }
+    wiresSvg.innerHTML = svg;
+    this.sc.setup?.(this);
+  }
+  q(id) { return stageEl.querySelector(`[data-id="${id}"]`); }
+  anchor(spec) {
+    if (typeof spec[0] === 'number') return this.tp(spec);
+    const [id, side = 'center'] = spec, e = this.q(id);
+    const x = e.offsetLeft, y = e.offsetTop, w = e.offsetWidth, h = e.offsetHeight;
+    return side === 'top' ? [x + w / 2, y] : side === 'bottom' ? [x + w / 2, y + h] : side === 'left' ? [x, y + h / 2] : side === 'right' ? [x + w, y + h / 2] : [x + w / 2, y + h / 2];
+  }
+  show(...ids) { if (!this.dead) ids.flat().forEach(id => this.q(id)?.classList.remove('hid')); }
+  hide(...ids) { if (!this.dead) ids.flat().forEach(id => this.q(id)?.classList.add('hid')); }
+  cls(id, c, on = true) { if (!this.dead) this.q(id)?.classList.toggle(c, on); }
+  set(id, h) { if (this.dead) return; const e = this.q(id); if (e) e.innerHTML = h; }
+  morph(id, h) {
+    if (this.dead) return; const e = this.q(id); if (!e) return;
+    e.innerHTML = h; e.classList.remove('swap'); if (!this.instant) { void e.offsetWidth; e.classList.add('swap'); }
+  }
+  style(id, k, v) {
+    if (this.dead) return; const e = this.q(id); if (!e) return;
+    if ((k === 'left' || k === 'top') && /px$/.test(v)) v = parseFloat(v) + (k === 'left' ? this.dx : this.dy) + 'px';
+    e.style[k] = v;
+  }
+  later(ms, fn) { if (this.dead) return; if (this.instant) fn(); else schedule(ms, fn, this); }
+  stagger(ids, gap = 140, start = 0) { ids.forEach((id, i) => this.later(start + i * gap, () => this.show(id))); }
+  every(ms, fn, first = ms) { if (!this.dead) schedule(first, fn, this, ms); }
+  flash(id) {
+    if (this.dead || this.instant) return;
+    const e = this.q(id); if (!e) return;
+    e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash');
+  }
+  // tabela: mostra a linha i e a destaca; ans(i) revela a resposta
+  row(t, i) { if (this.dead) return; this.show(t, t + i); this.q(t)?.querySelectorAll('.trow').forEach((r, k) => r.classList.toggle('cur', k === i)); }
+  ans(t, i) { this.cls(t + i + 'r', 'on'); }
+  done(t, n) { for (let i = 0; i < n; i++) { this.show(t + i); this.ans(t, i); } this.show(t); }
+  // pontos de um trajeto: ids de ligações ("<id" = ao contrário) ou pontos [x, y]
+  points(spec) {
+    const out = [];
+    for (const it of spec) {
+      if (typeof it !== 'string') { out.push(this.tp(it)); continue; }
+      const rev = it[0] === '<', p = wiresSvg.querySelector(`[data-id="${rev ? it.slice(1) : it}"]`);
+      if (!p) continue;
+      const L = p.getTotalLength(), n = Math.max(2, Math.ceil(L / 22)), arr = [];
+      for (let i = 0; i <= n; i++) { const q = p.getPointAtLength(L * i / n); arr.push([q.x, q.y]); }
+      if (rev) arr.reverse();
+      out.push(...arr);
+    }
+    return out;
+  }
+  // um "pacote" de dados viajando pelas ligações
+  packet(spec, label = '', kind = '', o = {}) {
+    if (this.dead || this.instant) return Promise.resolve();
+    const pts = this.points(spec);
+    if (pts.length < 2) return Promise.resolve();
+    const e = document.createElement('div');
+    e.className = 'pkt ' + kind; e.innerHTML = label;
+    pktLayer.appendChild(e);
+    let total = 0; const cum = [0];
+    for (let i = 1; i < pts.length; i++) { total += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); cum.push(total); }
+    const dur = o.dur || Math.max(o.min || 750, total / (o.speed || 560) * 1000);
+    const kf = pts.map((p, i) => ({ transform: `translate(${p[0]}px,${p[1]}px) translate(-50%,-50%)`, offset: total ? cum[i] / total : i / (pts.length - 1) }));
+    const a = e.animate(kf, { duration: dur, easing: 'linear', fill: 'forwards' });
+    const f = e.animate([{ opacity: 0 }, { opacity: 1, offset: .08 }, { opacity: 1, offset: .92 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+    for (const x of [a, f]) { x.playbackRate = clock.speed; if (!clock.playing) x.pause(); }
+    return a.finished.then(() => { e.remove(); }, () => { e.remove(); });
+  }
+  destroy() {
+    this.dead = true; clearOwner(this);
+    pktLayer.getAnimations({ subtree: true }).forEach(a => a.cancel());
+    pktLayer.innerHTML = '';
+  }
+}
+
+/* ---------- placa ESP32 DevKit (desenho) ---------- */
+const pins = (x0, y) => Array.from({ length: 17 }, (_, k) => `<rect x="${x0 + 30 * k}" y="${y}" width="14" height="14" rx="2" class="b-pin"/>`).join('');
+const BOARD = `<svg width="940" height="344" viewBox="0 10 820 300" role="img" aria-label="Placa ESP32 DevKit">
+  <rect x="20" y="80" width="680" height="220" rx="14" class="b-pcb"/>
+  ${pins(150, 92)}${pins(150, 274)}
+  <rect x="40" y="115" width="290" height="150" rx="4" class="b-mod"/>
+  <path class="b-ant" d="M52 130h50v18H58v18h44v18H58v18h44v18H58v18h44"/>
+  <rect x="115" y="125" width="205" height="130" rx="3" class="b-can"/>
+  <text x="217" y="186" class="b-cantext">ESP32-WROOM-32</text>
+  <text x="217" y="210" class="b-cantext sm">Wi-Fi · Bluetooth</text>
+  <rect x="470" y="160" width="48" height="48" rx="3" class="b-ic"/>
+  <rect x="390" y="128" width="28" height="28" rx="4" class="b-btn"/><circle cx="404" cy="142" r="8" class="b-btncap"/>
+  <text x="404" y="176" class="b-silk">EN</text>
+  <rect x="390" y="214" width="28" height="28" rx="4" class="b-btn"/><circle cx="404" cy="228" r="8" class="b-btncap"/>
+  <text x="404" y="262" class="b-silk">BOOT</text>
+  <circle cx="560" cy="126" r="9" class="b-led"/>
+  <text x="560" y="153" class="b-silk">IO2</text>
+  <rect x="650" y="150" width="62" height="62" rx="5" class="b-usb"/>
+  <text x="681" y="236" class="b-silk">USB</text>
+  <text x="560" y="250" class="b-silk lg">ESP32 DEVKIT</text>
+  <path class="b-call" d="M70 50L77 128M250 50L217 124M430 50V198L418 214M600 50L566 117"/>
+  <text x="70" y="40" class="b-ctext">Antena</text>
+  <text x="250" y="40" class="b-ctext">Chip · 240 MHz</text>
+  <text x="430" y="40" class="b-ctext">BOOT · GPIO 0</text>
+  <text x="600" y="40" class="b-ctext">LED · GPIO 2</text>
+</svg>`;
+
+/* =====================================================================
+   CENAS
+   ===================================================================== */
+const SCENES = [
+/* 01 ---------------------------------------------------------------- */
+{ title: 'Abertura', eyebrow: 'Guia rápido', ec: 'teal', node: 'phone', h: ['Como as coisas', 'conversam?'], mode: 'hero',
+  f16: { dx: 830, dy: -400 },
+  html: () => `
+    <div class="c phone hid" data-id="phone" style="left:290px;top:660px">
+      <div class="ph-top">Casa inteligente${dot('user', 'teal')}</div>
+      <div class="ph-card ph-temp"><span><small>Sala · agora</small><strong data-id="ptemp">24,6 °C</strong></span>${dot('thermo', 'teal', 'lg')}</div>
+      <div class="ph-card ph-light"><span><small>Luz da sala</small><b data-id="plabel">desligada</b></span><span class="toggle" data-id="tog"></span></div>
+      <div class="ph-card ph-foot">atualizado há 2 s</div>
+    </div>
+    <div class="c grp hid" data-id="grp" style="left:555px;top:655px;width:480px;height:340px"><span>ESP32</span></div>
+    ${ucard('sens', 580, 698, 430, 120, 'green', art('thermo'), 'sensor', 'mede a temperatura')}
+    ${ucard('ledc', 580, 846, 430, 120, 'green', art('led'), 'LED', 'acende e apaga')}
+    ${el('q1', 492, 736, 'qbub', '?')}${el('q2', 492, 884, 'qbub', '?')}
+    ${table('tb', 70, 1180, ['A PEÇA', 'DE ONDE VEM'], [
+      ['thermo', 'teal', 'temperatura', 'esp', 'green', 'sensor no ESP32'],
+      ['led', 'teal', 'botão da luz', 'esp', 'green', 'LED no ESP32'],
+      ['hub', 'purple', 'o caminho', 'hub', 'purple', 'API · WS · MQTT']])}`,
+  wires: [{ id: 'l1', pts: [[580, 758], [448, 758]], cls: 'teal' }, { id: 'l2', pts: [[448, 906], [580, 906]], cls: 'teal' }],
+  beats: [
+    { say: 'Você toca num botão do celular e uma luz acende do outro lado da sala.',
+      do(s) { s.show('phone'); } },
+    { mode: 'center', h: ['A temperatura', 'vem da placa.'],
+      say: 'O número que aparece no app não nasce no celular. Ele vem de um sensor ligado numa placa: o <b>ESP32</b>.',
+      do(s) {
+        s.show('phone'); s.style('phone', 'left', '70px'); s.style('phone', 'top', '600px'); s.style('phone', 'scale', '.8');
+        s.later(700, () => s.show('grp', 'sens', 'ledc'));
+        s.later(1300, () => { s.show('l1'); s.row('tb', 0); });
+        s.later(2100, () => s.ans('tb', 0));
+        let t = 24.6;
+        s.every(2300, () => { t = clamp(t + (Math.random() - .45) * .2, 23, 27); const v = fmt(t) + ' °C'; s.packet(['l1'], v, '', { min: 900 }).then(() => { s.set('ptemp', v); }); }, 1600);
+      } },
+    { h: ['O botão', 'chega até a placa.'],
+      say: 'E quando você toca no botão, o comando precisa chegar até a placa para acender o LED.',
+      do(s) {
+        s.show('l2'); s.row('tb', 1);
+        s.later(700, () => { s.cls('tog', 'on'); s.set('plabel', 'ligada'); s.packet(['l2'], 'LED: ON', 'cmd', { min: 900 }).then(() => { s.cls('ledc', 'led-on'); s.flash('ledc'); s.ans('tb', 1); }); });
+        if (s.instant) { s.cls('ledc', 'led-on'); s.ans('tb', 1); }
+      } },
+    { h: ['Como eles', 'conversam?'],
+      say: 'Como o app e a placa conversam? Com três ideias: <b>API</b>, <b>WebSocket</b> e <b>MQTT</b>.',
+      do(s) { s.show('q1', 'q2'); s.row('tb', 2); s.later(1600, () => s.ans('tb', 2)); } },
+  ] },
+
+/* 02 ---------------------------------------------------------------- */
+{ title: 'O que é uma API', eyebrow: 'Para entender', ec: 'purple', node: 'fork', h: ['Pensa num', 'restaurante.'],
+  f16: { dx: 830, dy: -330 },
+  html: () => `
+    ${ucard('coz', 520, 580, 490, 150, 'green', art('pot'), 'cozinha', 'lá atrás', dot('hat', 'green', 'lg solid'), 'end')}
+    ${el('wallL', 70, 880, 'wall', '', 'width:470px')}${el('wallR', 540, 880, 'wall', '', 'width:470px')}
+    ${ucard('voce', 70, 1030, 490, 150, 'teal', dot('user', 'teal', 'lg solid'), 'você', 'na mesa', `<span class="art" style="color:var(--faint)">${IC.plate}</span>`)}
+    ${el('x1', 744, 826, 'xmark', '✕')}${el('x2', 294, 910, 'xmark', '✕')}
+    <div class="c wnode hid" data-id="gar" style="left:512px;top:852px">${dot('waiter', 'purple')}<span class="tagp" data-id="garl">garçom</span></div>
+    ${table('tb', 70, 1290, ['NO RESTAURANTE', 'NA API'], [
+      ['user', 'teal', 'você', 'phone', 'teal', 'aplicativo'],
+      ['hat', 'green', 'cozinha', 'server', 'green', 'sistema'],
+      ['waiter', 'purple', 'garçom', 'waiter', 'purple', 'API']])}`,
+  wires: [
+    { id: 'dz1', pts: [[765, 734], [765, 824]], cls: 'dotted red' },
+    { id: 'dz2', pts: [[315, 954], [315, 1028]], cls: 'dotted red' },
+    { id: 'lw', from: ['coz', 'bottom'], to: ['voce', 'top'] }],
+  beats: [
+    { say: 'A cozinha fica lá atrás. Você está na mesa, com fome.',
+      do(s) { s.show('coz', 'voce', 'wallL', 'wallR'); s.later(600, () => { s.row('tb', 0); s.later(300, () => s.row('tb', 1)); }); } },
+    { say: 'Ninguém atravessa a parede: você não entra na cozinha, e a cozinha não vem até a sua mesa.',
+      do(s) { s.show('dz1', 'dz2'); s.later(500, () => s.show('x1', 'x2')); } },
+    { say: 'Quem faz a ponte é o <b>garçom</b>. Ele leva o pedido e volta com o prato.',
+      do(s) {
+        s.hide('dz1', 'dz2', 'x1', 'x2');
+        s.style('wallL', 'width', '400px'); s.style('wallR', 'left', '610px'); s.style('wallR', 'width', '400px');
+        s.later(500, () => s.show('lw', 'gar')); s.row('tb', 2);
+        s.later(1500, () => s.packet(['<lw'], 'pedido', 'cmd').then(() => { s.flash('coz'); return s.packet(['lw'], 'prato'); }).then(() => s.flash('voce')));
+      } },
+    { h: ['A API é', 'o garçom.'],
+      say: 'De um lado, um <b>aplicativo</b> que precisa de algo. Do outro, um <b>sistema</b> que tem. A API leva o pedido e traz a resposta.',
+      do(s) {
+        s.later(300, () => { s.morph('voce-t', 'aplicativo'); s.morph('voce-s', 'quer a temperatura'); s.row('tb', 0); s.ans('tb', 0); });
+        s.later(2200, () => { s.morph('coz-t', 'sistema'); s.morph('coz-s', 'tem os dados'); s.row('tb', 1); s.ans('tb', 1); });
+        s.later(4200, () => { s.morph('garl', 'API'); s.row('tb', 2); s.ans('tb', 2); s.flash('gar'); });
+        s.later(5200, () => s.packet(['<lw'], 'GET /temperatura', 'cmd').then(() => s.packet(['lw'], '24,6 °C')));
+      } },
+  ] },
+
+/* 03 ---------------------------------------------------------------- */
+{ title: 'O cardápio', eyebrow: 'A regra', ec: 'orange', node: 'menu', h: ['Existe um', 'cardápio.'],
+  f16: { dx: 830, dy: -360 },
+  html: () => `
+    <div class="c menu hid" data-id="menu" style="left:520px;top:560px;width:490px">
+      <div class="mh"><span class="mic">${IC.fork}</span><span data-id="menut">Cardápio</span></div>
+      <div class="ms" data-id="menus">o que tem para pedir</div>
+      ${[['pizza', 'Pizza', 'GET /temperatura'], ['soup', 'Sopa', 'POST /led'], ['leaf', 'Salada', 'GET /status']].map(([ic, a, b], i) => `<div class="mi" data-id="mi${i}"><span class="mic">${IC[ic]}</span><span class="a">${a}</span><span class="b">${b}</span></div>`).join('')}
+    </div>
+    ${el('pz', 130, 752, 'pill', IC.doc + '<span data-id="pzt">pizza</span>', 'width:300px')}
+    ${ucard('voce', 70, 1060, 440, 130, 'teal', dot('user', 'teal', 'lg solid'), 'você', 'faz o pedido')}
+    ${table('tb', 70, 1290, ['NO RESTAURANTE', 'NA API'], [
+      ['user', 'teal', 'você', 'phone', 'teal', 'aplicativo'],
+      ['hat', 'green', 'cozinha', 'server', 'green', 'sistema'],
+      ['waiter', 'purple', 'garçom', 'waiter', 'purple', 'API'],
+      ['menu', 'orange', 'cardápio', 'doc', 'orange', 'documentação']])}`,
+  wires: [{ id: 'ld1', pts: [[280, 1058], [280, 812]], cls: 'dotted' }, { id: 'ld2', pts: [[434, 781], [518, 781]], cls: 'dotted' }],
+  beats: [
+    { say: 'Você só pode pedir o que está nele. Pedir um prato que não existe não funciona.',
+      do(s) {
+        s.show('menu', 'voce'); s.done('tb', 3);
+        s.later(900, () => s.show('ld1', 'pz', 'ld2'));
+        s.later(1500, () => { s.row('tb', 3); s.flash('mi0'); });
+      } },
+    { h: ['Na API, é a', 'documentação.'],
+      say: 'Ela diz o que dá para pedir e como pedir: o endereço, o verbo e o formato da resposta.',
+      do(s) {
+        s.later(200, () => { s.cls('menu', 'doc'); s.morph('menut', 'Documentação'); s.morph('menus', 'o que dá para pedir, e como'); s.morph('pzt', 'GET /temperatura'); });
+        s.later(1400, () => { s.morph('voce-t', 'aplicativo'); s.morph('voce-s', 'faz a requisição'); });
+        s.later(2400, () => { s.row('tb', 3); s.ans('tb', 3); });
+      } },
+  ] },
+
+/* 04 ---------------------------------------------------------------- */
+{ title: 'Pedido e resposta', eyebrow: 'Na prática', ec: 'teal', node: 'server', h: ['Pedido vai,', 'resposta volta.'],
+  f16: { dx: 830, dy: -420, pos: { reqc: [80, 480, 'width:760px'], resc: [80, 690, 'width:760px'], verbs: [900, 770], rule: [900, 770] } },
+  html: () => `
+    ${ucard('app', 70, 560, 940, 120, 'teal', dot('browser', 'teal', 'lg'), 'aplicativo', 'o cliente, que pergunta')}
+    ${ucard('srv', 70, 1010, 940, 120, 'green', dot('server', 'green', 'lg'), 'servidor', 'lab.escola.br, que responde')}
+    ${el('codes', 375, 762, 'stack', '<span class="cchip teal"><b>200</b>deu certo</span><span class="cchip orange"><b>404</b>não encontrado</span><span class="cchip red"><b>500</b>erro no servidor</span>', 'width:330px')}
+    ${el('reqc', 70, 1170, 'code', '<span class="tag">Requisição</span><b class="k">GET</b> /api/temperatura HTTP/1.1<br>Host: lab.escola.br<br>Accept: application/json', 'width:940px')}
+    ${el('resc', 70, 1380, 'code', '<span class="tag">Resposta</span><b class="ok">HTTP/1.1 200 OK</b><br>Content-Type: application/json<br>{ <s>"sensor"</s>: <s>"temperatura"</s>, <s>"valor"</s>: <i>24.6</i> }', 'width:940px')}
+    ${el('verbs', 70, 1640, 'verbs', [['GET', 'buscar'], ['POST', 'enviar'], ['PUT', 'atualizar'], ['DELETE', 'apagar']].map(([v, t], i) => `<span class="verb rv hid" data-id="v${i}"><b>${v}</b>${t}</span>`).join(''))}
+    ${el('rule', 70, 1640, 'banner', '<b>1 pergunta → 1 resposta.</b> No HTTP, quem começa a conversa é sempre o cliente.')}`,
+  wires: [{ id: 'lq', pts: [[300, 682], [300, 1008]], cls: 'teal' }, { id: 'la', pts: [[780, 1008], [780, 682]], cls: 'orange' }],
+  beats: [
+    { say: 'Na web, o pedido segue um protocolo chamado <b>HTTP</b>. Vai um verbo e um endereço.',
+      do(s) { s.show('app', 'srv', 'lq'); s.later(500, () => s.show('reqc')); s.later(1300, () => s.packet(['lq'], 'GET /api/temperatura', 'cmd').then(() => s.flash('srv'))); } },
+    { say: 'A resposta volta com um código, como <b>200 OK</b>, e os dados em <b>JSON</b>.',
+      do(s) { s.show('la', 'resc'); s.later(300, () => s.packet(['la'], '200 · JSON').then(() => s.flash('app'))); s.later(1400, () => s.show('codes')); } },
+    { say: 'Os verbos dizem a intenção: <b>GET</b> busca, <b>POST</b> envia, <b>PUT</b> atualiza e <b>DELETE</b> apaga.',
+      do(s) { s.show('verbs'); s.stagger(['v0', 'v1', 'v2', 'v3'], 650, 200); } },
+    { h: ['Quem pergunta', 'é o cliente.'],
+      say: 'Repare: no HTTP, o servidor nunca fala primeiro. Ele só responde quando alguém pergunta.',
+      do(s) {
+        s.hide('verbs'); s.show('rule');
+        s.later(700, () => s.packet(['lq'], 'pergunta', 'cmd').then(() => s.packet(['la'], 'resposta')));
+      } },
+  ] },
+
+/* 05 ---------------------------------------------------------------- */
+{ title: 'O problema do tempo real', eyebrow: 'O problema', ec: 'red', node: 'thermo', h: ['E se o dado', 'muda toda hora?'],
+  f16: { dx: 830, dy: -330, pos: { stats: [80, 500, 'width:760px'], kid: [80, 700, 'width:760px'] } },
+  html: () => `
+    ${ucard('app', 70, 560, 940, 120, 'teal', dot('browser', 'teal', 'lg'), 'aplicativo', 'quer ver cada mudança')}
+    ${ucard('sensor', 70, 1000, 940, 170, 'green', dot('thermo', 'green', 'lg'), 'sensor', 'servidor HTTP', '<strong class="readout" data-id="readout">24,6 °C</strong>')}
+    ${el('stats', 70, 1230, 'stats', '<div class="nums"><span>Perguntas <b data-id="q">0</b></span><span>Com novidade <b data-id="n">0</b></span></div><div class="meter"><i data-id="bar"></i></div><small>perguntas desperdiçadas: <span data-id="pct">0%</span></small>')}
+    ${el('kid', 70, 1470, 'bubble', '<em>— Já saiu meu prato?</em><br>— Ainda não.<br><em>— E agora, já saiu?</em><br>— Ainda não…')}`,
+  wires: [{ id: 'lq', pts: [[330, 682], [330, 998]], cls: 'thin' }, { id: 'la', pts: [[750, 998], [750, 682]], cls: 'thin' }],
+  beats: [
+    { say: 'Um sensor de temperatura muda a qualquer momento. E o app quer saber na hora.',
+      do(s) { s.state = { q: 0, n: 0, t: 24.6 }; s.show('app', 'sensor', 'lq', 'la'); s.later(600, () => s.show('stats')); } },
+    { h: ['Já mudou?', 'Não.'],
+      say: 'Com HTTP, o app precisa perguntar de novo, e de novo, e de novo. Isso se chama <b>polling</b>.',
+      do(s) {
+        s.every(720, () => {
+          s.packet(['lq'], 'mudou?', 'muted', { speed: 900, min: 500 }).then(() => {
+            const st = s.state; st.q++;
+            const changed = Math.random() < .14;
+            if (changed) { st.t += (Math.random() < .5 ? -.1 : .1) * (1 + Math.floor(Math.random() * 3)); st.n++; s.set('readout', fmt(st.t) + ' °C'); s.flash('readout'); }
+            s.set('q', st.q); s.set('n', st.n);
+            const waste = Math.round((st.q - st.n) / st.q * 100);
+            s.set('pct', waste + '%'); s.style('bar', 'width', waste + '%');
+            s.packet(['la'], changed ? 'sim! ' + fmt(st.t) + ' °C' : 'não', changed ? '' : 'muted', { speed: 900, min: 500 });
+          });
+        }, 100);
+      } },
+    { say: 'É chamar o garçom a cada minuto: já saiu? Gasta rede, gasta bateria, e a novidade ainda chega atrasada.',
+      do(s) { s.show('kid'); } },
+    { h: ['Precisamos de', 'tempo real.'],
+      say: 'O ideal é o sistema <b>avisar sozinho</b> quando algo muda.',
+      do(s) { s.flash('stats'); s.cls('sensor', 'glow'); } },
+  ] },
+
+/* 06 ---------------------------------------------------------------- */
+{ title: 'WebSocket', eyebrow: 'Solução 1', ec: 'teal', node: 'call', h: ['WebSocket:', 'a linha aberta.'],
+  f16: { dx: 830, dy: -400, pos: { urls: [900, 770], note: [900, 860] } },
+  html: () => `
+    ${ucard('app', 70, 560, 940, 120, 'teal', dot('browser', 'teal', 'lg'), 'navegador', 'abre a conexão')}
+    ${ucard('srv', 70, 1000, 940, 120, 'green', dot('server', 'green', 'lg'), 'servidor', 'aceita o upgrade')}
+    ${el('hreq', 70, 715, 'code', '<span class="tag">Pedido</span><b class="k">GET</b> /tempo-real<br>Upgrade: websocket<br>Connection: Upgrade', 'width:420px;font-size:23px')}
+    ${el('hres', 590, 760, 'code', '<span class="tag">Resposta</span><b class="ok">101 Switching<br>Protocols</b>', 'width:420px;font-size:23px')}
+    ${el('call', 70, 735, 'acard', dot('call', 'teal') + '<div><b>Ligação aberta</b><span>a linha continua ligada</span></div>', 'width:420px;height:210px')}
+    ${el('duplex', 590, 735, 'acard', dot('duplex', 'orange') + '<div><b>Full-duplex</b><span>os dois lados falam ao mesmo tempo</span></div>', 'width:420px;height:210px')}
+    ${table('tb', 70, 1180, ['NA CONVERSA', 'NA WEB'], [
+      ['doc', 'orange', 'carta', 'server', 'green', 'HTTP'],
+      ['call', 'teal', 'ligação', 'call', 'teal', 'WebSocket'],
+      ['duplex', 'orange', 'falar junto', 'duplex', 'orange', 'full-duplex']])}
+    ${el('urls', 70, 1500, 'urls', '<span class="uchip">ws://lab.escola.br</span><span class="uchip on">wss:// = criptografado</span>')}
+    ${el('note', 70, 1610, 'note', 'Mas o WebSocket é <b>só o cano</b>. Ele não diz quem deve receber cada mensagem.')}`,
+  wires: [{ id: 'lh', pts: [[540, 682], [540, 998]], cls: 'thin' }, { id: 'pipe', pts: [[540, 700], [540, 980]], cls: 'pipe' }, { id: 'core', pts: [[540, 700], [540, 980]], cls: 'core' }],
+  beats: [
+    { say: 'O WebSocket começa como um pedido HTTP comum, pedindo um <b>upgrade</b>.',
+      do(s) {
+        s.show('app', 'srv', 'lh'); s.later(400, () => s.show('hreq'));
+        s.later(1300, () => s.packet(['lh'], 'Upgrade', 'cmd').then(() => { s.show('hres'); s.flash('srv'); return s.packet(['<lh'], '101'); }));
+      } },
+    { say: 'Depois disso, a linha fica aberta, como numa <b>ligação</b>. Os dois lados falam quando quiserem.',
+      do(s) {
+        s.hide('hreq', 'hres', 'lh'); s.show('pipe', 'core', 'call'); s.cls('pipe', 'live');
+        s.done('tb', 1); s.later(1200, () => { s.row('tb', 1); s.ans('tb', 1); });
+        const up = ['temp: 24.7', 'luz: 73%', 'pot: 40%', 'temp: 24.8'], down = ['led: on', 'oi!', 'led: off'];
+        let i = 0;
+        s.every(640, () => { const u = Math.random() < .55; s.packet(u ? [[518, 990], [518, 690]] : [[562, 690], [562, 990]], u ? up[i++ % up.length] : down[i++ % down.length], u ? '' : 'cmd', { speed: 520, min: 500 }); }, 300);
+      } },
+    { say: 'Isso se chama <b>full-duplex</b>. O endereço começa com <b>ws://</b>, ou <b>wss://</b> na versão criptografada.',
+      tts: 'Isso se chama full-duplex. O endereço começa com W S, ou com W S S na versão criptografada.',
+      do(s) { s.show('duplex'); s.later(800, () => { s.row('tb', 2); s.ans('tb', 2); }); s.later(1800, () => s.show('urls')); } },
+    { h: ['Mas é só', 'o cano.'],
+      say: 'O WebSocket não organiza quem recebe cada mensagem. Com dezenas de aparelhos, vira bagunça. Para isso existe o <b>MQTT</b>.',
+      do(s) { s.show('note'); } },
+  ] },
+
+/* 07 ---------------------------------------------------------------- */
+{ title: 'MQTT: publicar e assinar', eyebrow: 'Solução 2', ec: 'purple', node: 'hub', h: ['MQTT:', 'publicar e assinar.'],
+  f16: { dx: 830, dy: -380 },
+  html: () => `
+    ${ucard('e1', 70, 560, 440, 120, 'green', dot('esp', 'green', 'lg solid'), 'ESP32 · lab 1', 'publica temperatura')}
+    ${ucard('e2', 570, 560, 440, 120, 'green', dot('esp', 'green', 'lg solid'), 'ESP32 · lab 2', 'publica luz')}
+    ${ucard('broker', 240, 820, 600, 140, 'purple', dot('hub', 'purple', 'lg solid'), 'broker', 'entrega para quem assinou')}
+    ${ucard('s1', 70, 1100, 290, 140, 'teal', dot('headset', 'teal'), 'Painel XR', 'lab1/temperatura', '', 'col')}
+    ${ucard('s2', 395, 1100, 290, 140, 'teal', dot('phone', 'teal'), 'Celular', 'lab1/temperatura', '', 'col')}
+    ${ucard('s3', 720, 1100, 290, 140, 'teal', dot('sheet', 'teal'), 'Planilha', 'lab2/luz', '', 'col')}
+    ${table('tb', 70, 1310, ['NO CANAL', 'NO MQTT'], [
+      ['play', 'orange', 'quem posta', 'esp', 'green', 'publicador'],
+      ['play', 'orange', 'o canal', 'folder', 'orange', 'tópico'],
+      ['user', 'teal', 'inscrito', 'headset', 'teal', 'assinante'],
+      ['play', 'orange', 'a plataforma', 'hub', 'purple', 'broker']])}`,
+  wires: [
+    { id: 'le1', from: ['e1', 'bottom'], to: ['broker', 'top'] }, { id: 'le2', from: ['e2', 'bottom'], to: ['broker', 'top'] },
+    { id: 'ls1', from: ['broker', 'bottom'], to: ['s1', 'top'] }, { id: 'ls2', from: ['broker', 'bottom'], to: ['s2', 'top'] }, { id: 'ls3', from: ['broker', 'bottom'], to: ['s3', 'top'] }],
+  beats: [
+    { say: 'O <b>MQTT</b> é um protocolo de mensagens feito para a Internet das Coisas.',
+      do(s) { s.show('broker'); } },
+    { h: ['Pensa num', 'canal de vídeos.'],
+      say: 'Quem posta não manda o vídeo para cada pessoa. Posta no canal, e a plataforma entrega para quem se inscreveu.',
+      do(s) {
+        s.stagger(['e1', 'le1', 'e2', 'le2', 's1', 'ls1', 's2', 'ls2', 's3', 'ls3'], 150);
+        s.later(1600, () => s.row('tb', 0)); s.later(2400, () => s.row('tb', 1)); s.later(3200, () => s.row('tb', 2)); s.later(4000, () => s.row('tb', 3));
+      } },
+    { say: 'No MQTT é igual: o ESP32 <b>publica</b> no tópico <b>escola/lab1/temperatura</b>, e o <b>broker</b> entrega para quem <b>assinou</b>.',
+      tts: 'No MQTT é igual: o ESP32 publica no tópico escola, barra, lab um, barra, temperatura. E o broker entrega para quem assinou.',
+      do(s) {
+        [0, 1, 2, 3].forEach(i => s.later(400 + i * 900, () => { s.row('tb', i); s.ans('tb', i); }));
+        s.later(900, () => s.packet(['le1'], 'lab1/temperatura', '', { speed: 300 }).then(() => { s.flash('broker'); ['s1', 's2'].forEach(id => s.packet(['l' + id], '24,7 °C', '', { speed: 300 }).then(() => s.flash(id))); }));
+      } },
+    { say: 'Quem publica nem sabe quantos estão ouvindo. Dá para incluir um painel novo sem mexer no sensor.',
+      do(s) {
+        let t = 24.7, alt = false;
+        s.every(2500, () => {
+          alt = !alt;
+          if (alt) { t += .1; const v = fmt(t) + ' °C'; s.packet(['le1'], 'lab1/temperatura', '', { speed: 300 }).then(() => { s.flash('broker'); ['s1', 's2'].forEach(id => s.packet(['l' + id], v, '', { speed: 300 }).then(() => s.flash(id))); }); }
+          else s.packet(['le2'], 'lab2/luz', '', { speed: 300 }).then(() => { s.flash('broker'); s.packet(['ls3'], '73%', '', { speed: 300 }).then(() => s.flash('s3')); });
+        }, 400);
+      } },
+  ] },
+
+/* 08 ---------------------------------------------------------------- */
+{ title: 'Tópicos, QoS e testamento', eyebrow: 'Os detalhes', ec: 'orange', node: 'folder', h: ['Tópicos são', 'como pastas.'],
+  f16: { pos: { tree: [900, 120], plus: [1410, 130], hash: [1410, 320], q0: [900, 610], q1: [1225, 610], q2: [1550, 610],
+    ret: [80, 520, 'width:370px'], lwt: [470, 520, 'width:370px'], fact: [80, 740, 'width:760px'] } },
+  html: () => {
+    const rows = [['', 'escola/'], ['├─ ', 'lab1/'], ['│  ├─ ', 'temperatura'], ['│  ├─ ', 'luz'], ['│  └─ ', 'led/set'], ['└─ ', 'lab2/'], ['   ├─ ', 'temperatura'], ['   └─ ', 'luz']];
+    return `
+    <div class="c tree hid" data-id="tree" style="left:70px;top:560px"><span class="tag">Tópicos</span>${rows.map(([p, t], i) => `<div class="tr" data-id="tr${i}"><span class="pre">${p}</span>${t}</div>`).join('')}</div>
+    ${el('plus', 580, 580, 'wild', '<code>escola/+/temperatura</code><span><b>+</b> vale um nível qualquer</span>')}
+    ${el('hash', 580, 770, 'wild', '<code>escola/lab1/#</code><span><b>#</b> vale tudo dali para baixo</span>')}
+    ${el('q0', 70, 1060, 'qos', '<b>QoS 0</b><span>no máximo 1 vez</span><small>carta simples</small>')}
+    ${el('q1', 395, 1060, 'qos', '<b>QoS 1</b><span>pelo menos 1 vez</span><small>carta com aviso de recebimento</small>')}
+    ${el('q2', 720, 1060, 'qos', '<b>QoS 2</b><span>exatamente 1 vez</span><small>entrega em mãos, com assinatura</small>')}
+    ${el('ret', 70, 1310, 'trick', '<b>Retain</b>O broker guarda a última mensagem para quem chegar depois.')}
+    ${el('lwt', 555, 1310, 'trick', '<b>Testamento</b>Se o dispositivo cair, o broker avisa todo mundo.')}
+    ${el('fact', 70, 1530, 'fact', '<strong>2 bytes</strong><span>O MQTT nasceu em 1999 para monitorar oleodutos por satélite. O menor cabeçalho cabe em 2 bytes.</span>')}`;
+  },
+  beats: [
+    { say: 'Os nomes vão do geral para o específico, separados por barras.',
+      do(s) { s.show('tree'); } },
+    { h: ['+ e #', 'assinam vários.'],
+      say: 'O <b>+</b> vale um nível qualquer. O <b>#</b> vale tudo dali para baixo.',
+      tts: 'O sinal de mais vale um nível qualquer. A cerquilha vale tudo dali para baixo.',
+      do(s) {
+        const clear = () => [0, 1, 2, 3, 4, 5, 6, 7].forEach(i => s.cls('tr' + i, 'hl', false));
+        s.show('plus'); s.cls('plus', 'on'); [2, 6].forEach(i => s.cls('tr' + i, 'hl'));
+        s.later(3000, () => { clear(); s.cls('plus', 'on', false); s.show('hash'); s.cls('hash', 'on'); [1, 2, 3, 4].forEach(i => s.cls('tr' + i, 'hl')); });
+      } },
+    { h: ['QoS: a garantia', 'de entrega.'],
+      say: 'Zero: no máximo uma vez. Um: pelo menos uma vez. Dois: exatamente uma vez.',
+      do(s) { s.stagger(['q0', 'q1', 'q2'], 1300, 100); } },
+    { h: ['Retain e', 'testamento.'],
+      say: 'A mensagem <b>retida</b> fica guardada para quem chegar depois. O <b>testamento</b> avisa todos se o aparelho cair.',
+      do(s) { s.show('ret'); s.later(2200, () => s.show('lwt')); } },
+    { h: ['Desde 1999,', 'em 2 bytes.'],
+      say: 'O MQTT nasceu para monitorar oleodutos por satélite, onde cada byte custava caro. Por isso ele é tão leve.',
+      do(s) { s.show('fact'); } },
+  ] },
+
+/* 09 ---------------------------------------------------------------- */
+{ title: 'WebSocket + MQTT', eyebrow: 'Juntando', ec: 'teal', node: 'browser', h: ['Qual usar?', 'Os dois.'],
+  f16: { dx: 830, dy: -430 },
+  html: () => `
+    ${el('ws', 70, 560, 'vs teal', '<span class="tag">Transporte</span><h3>WebSocket</h3>' + ['É <b>o cano</b>: uma linha aberta', 'Conversa de <b>1 para 1</b>', 'O navegador fala <b>nativamente</b>', 'Você inventa o formato'].map((t, i) => `<div class="row rv hid" data-id="wr${i}">${t}</div>`).join(''))}
+    ${el('mq', 555, 560, 'vs orange', '<span class="tag">Mensagens</span><h3>MQTT</h3>' + ['É <b>a regra da conversa</b>', 'De <b>muitos para muitos</b>', '<b>Tópicos</b>, QoS e retain', '<b>Leve</b> para placas pequenas'].map((t, i) => `<div class="row rv hid" data-id="mr${i}">${t}</div>`).join(''))}
+    ${el('n1', 96, 1086, 'node sky', IC.browser + '<em>navegador</em>')}
+    ${el('n2', 476, 1086, 'node purple', IC.hub + '<em>broker</em>')}
+    ${el('n3', 856, 1086, 'node green', IC.esp + '<em>ESP32</em>')}
+    ${el('lp', 210, 1030, 'wl', 'MQTT no <b>WebSocket</b><br>wss · 8884')}
+    ${el('lt', 590, 1030, 'wl', 'MQTT puro<br>TCP · 1883')}
+    ${table('tb', 70, 1350, ['QUEM', 'COMO SE CONECTA'], [
+      ['esp', 'green', 'ESP32', 'hub', 'purple', 'MQTT · TCP 1883'],
+      ['browser', 'sky', 'navegador', 'call', 'teal', 'MQTT no WS · 8884']])}`,
+  wires: [{ id: 'pipe', pts: [[236, 1150], [464, 1150]], cls: 'pipe' }, { id: 'core', pts: [[236, 1150], [464, 1150]], cls: 'core' }, { id: 'wt', pts: [[606, 1150], [854, 1150]] }],
+  beats: [
+    { say: 'WebSocket e MQTT não competem. Um completa o outro.',
+      do(s) { s.show('ws'); s.later(500, () => s.show('mq')); } },
+    { say: 'O <b>WebSocket</b> é o transporte, o cano. O <b>MQTT</b> é o jeito de organizar as mensagens que passam por ele.',
+      do(s) { s.stagger(['wr0', 'mr0', 'wr1', 'mr1', 'wr2', 'mr2', 'wr3', 'mr3'], 500, 200); } },
+    { h: ['MQTT dentro', 'do WebSocket.'],
+      say: 'O navegador não abre conexão MQTT pura. Então o MQTT viaja dentro de um WebSocket. É assim que a cena 3D fala com o broker.',
+      do(s) {
+        s.show('n1', 'n2', 'n3', 'pipe', 'core', 'wt', 'lp', 'lt'); s.cls('pipe', 'live');
+        s.later(1500, () => { s.row('tb', 0); s.ans('tb', 0); }); s.later(3500, () => { s.row('tb', 1); s.ans('tb', 1); });
+        s.every(1700, () => s.packet(['<wt'], 'MQTT', '', { speed: 420 }).then(() => { s.flash('n2'); return s.packet(['<pipe'], 'MQTT', 'cmd', { speed: 420 }); }).then(() => s.flash('n1')), 600);
+      } },
+  ] },
+
+/* 10 ---------------------------------------------------------------- */
+{ title: 'O ESP32', eyebrow: 'No mundo físico', ec: 'green', node: 'esp', h: ['Quem sente', 'é o ESP32.'],
+  f16: { dx: 830, dy: -400, pos: { code: [80, 500, 'width:760px'], json: [80, 690, 'width:760px;font-size:21px'] } },
+  html: () => `
+    ${el('board', 70, 560, 'boardsvg', BOARD)}
+    ${ucard('sd', 70, 1000, 290, 140, 'green', dot('thermo', 'green'), 'DHT22', 'temperatura', '', 'col')}
+    ${ucard('sl', 395, 1000, 290, 140, 'green', dot('sun', 'green'), 'LDR', 'luz ambiente', '', 'col')}
+    ${ucard('sp', 720, 1000, 290, 140, 'green', dot('knob', 'green'), 'Potenciômetro', 'giro 0–100%', '', 'col')}
+    ${el('code', 70, 1210, 'code', '<span class="tag">No código do ESP32</span>client.<b class="k">publish</b>(<s>"escola/lab1/esp32/telemetria"</s>, json);<br>client.<b class="ok">subscribe</b>(<s>"escola/lab1/esp32/led/set"</s>);', 'width:940px;font-size:22px')}
+    ${el('json', 70, 1430, 'code', '<span class="tag">O que ele publica a cada 2 s</span>{<s>"temp"</s>:<i>24.6</i>,<s>"umid"</s>:<i>55</i>,<s>"luz"</s>:<i>73</i>,<s>"pot"</s>:<i>40</i>,<s>"rssi"</s>:<i>-61</i>}', 'width:940px;font-size:24px')}`,
+  wires: [
+    { id: 'w1', from: [319, 872], to: [215, 998] },
+    { id: 'w2', from: [456, 872], to: [540, 998] },
+    { id: 'w3', from: [594, 872], to: [865, 998] }].map(w => ({ ...w, cls: 'green' })),
+  beats: [
+    { say: 'O <b>ESP32</b> é um microcontrolador barato, com Wi-Fi e Bluetooth no mesmo chip.',
+      do(s) { s.show('board'); } },
+    { h: ['Ele lê sensores', 'e liga coisas.'],
+      say: 'Temperatura, luz e um potenciômetro entram pelos pinos. Um LED ou um relé saem.',
+      do(s) {
+        s.stagger(['w1', 'sd', 'w2', 'sl', 'w3', 'sp'], 200);
+        s.later(1700, () => s.cls('board', 'on'));
+        const read = [['<w1', '24,6 °C'], ['<w2', '73%'], ['<w3', '40%']];
+        let i = 0;
+        s.every(900, () => { const [w, v] = read[i++ % 3]; s.packet([w], v, '', { speed: 260 }); }, 1400);
+      } },
+    { h: ['A cada 2 segundos,', 'um JSON.'],
+      say: 'No nosso projeto, ele <b>publica</b> as leituras em JSON e <b>assina</b> um tópico de comandos para o LED.',
+      do(s) { s.show('code'); s.later(1200, () => s.show('json')); s.every(2000, () => s.flash('json'), 2400); } },
+  ] },
+
+/* 11 ---------------------------------------------------------------- */
+{ title: 'Arquitetura do projeto', eyebrow: 'No nosso projeto', ec: 'purple', node: 'headset', h: ['Do sensor', 'ao óculos VR.'],
+  f16: { dx: 830, dy: -440 },
+  html: () => `
+    ${ucard('esp', 70, 560, 520, 130, 'green', dot('esp', 'green', 'lg solid'), 'ESP32', 'mede e publica')}
+    ${ucard('broker', 70, 800, 520, 130, 'purple', dot('hub', 'purple', 'lg solid'), 'broker MQTT', 'HiveMQ ou Mosquitto')}
+    ${ucard('web', 70, 1040, 520, 130, 'sky', dot('browser', 'sky', 'lg solid'), 'Babylon.js', 'cena 3D na página')}
+    ${ucard('xr', 70, 1280, 520, 130, 'teal', dot('headset', 'teal', 'lg solid'), 'WebXR', 'óculos VR · celular AR')}
+    ${el('ll1', 400, 726, 'wl', '<b>MQTT</b> · TCP 1883', 'text-align:left;width:220px')}
+    ${el('ll2', 400, 966, 'wl', '<b>MQTT/WSS</b> · 8884', 'text-align:left;width:220px')}
+    ${el('ll3', 400, 1206, 'wl', '<b>WebXR</b>', 'text-align:left;width:220px')}
+    ${el('espmini', 640, 560, 'mini', '<span class="tag">No ESP32</span><span>temp <span data-id="et">24,6</span> °C</span><span class="ledrow" data-id="eled">LED ● desligado</span>')}
+    ${el('dash', 640, 1040, 'mini', '<span class="tag">Na cena 3D</span><span>temp <b data-id="dt">24,6 °C</b></span><span class="bar"><i data-id="dbar" style="width:49%"></i></span><span class="ledrow" data-id="dled">LED ● desligado</span>', 'height:160px;top:1025px')}
+    ${table('tb', 70, 1460, ['NO PROJETO', 'FAZ O QUÊ'], [
+      ['esp', 'green', 'ESP32', 'thermo', 'green', 'mede e publica'],
+      ['hub', 'purple', 'broker', 'hub', 'purple', 'distribui'],
+      ['browser', 'sky', 'Babylon.js', 'browser', 'sky', 'desenha em 3D'],
+      ['headset', 'teal', 'WebXR', 'headset', 'teal', 'leva ao VR e AR']])}`,
+  wires: [
+    { id: 'd1', pts: [[290, 692], [290, 798]], cls: 'orange' }, { id: 'd2', pts: [[290, 932], [290, 1038]], cls: 'orange' }, { id: 'd3', pts: [[290, 1172], [290, 1278]], cls: 'orange' },
+    { id: 'c3', pts: [[370, 1278], [370, 1172]], cls: 'teal' }, { id: 'c2', pts: [[370, 1038], [370, 932]], cls: 'teal' }, { id: 'c1', pts: [[370, 798], [370, 692]], cls: 'teal' }],
+  beats: [
+    { say: 'O ESP32 publica a telemetria no <b>broker</b>, usando MQTT sobre TCP.',
+      do(s) {
+        s.state.t = 24.6;
+        s.show('esp', 'espmini'); s.later(500, () => s.show('d1', 'broker', 'll1'));
+        s.later(900, () => { s.row('tb', 0); s.ans('tb', 0); }); s.later(2200, () => { s.row('tb', 1); s.ans('tb', 1); });
+        s.later(1400, () => s.packet(['d1'], 'telemetria', '', { speed: 200 }).then(() => s.flash('broker')));
+      } },
+    { say: 'A página feita com <b>Babylon.js</b> assina os tópicos por WebSocket e transforma os números em objetos 3D.',
+      do(s) {
+        s.show('d2', 'web', 'll2', 'dash'); s.later(900, () => { s.row('tb', 2); s.ans('tb', 2); });
+        s.every(2300, () => {
+          const st = s.state; st.t = clamp(st.t + (Math.random() - .45) * .4, 22, 28);
+          s.set('et', fmt(st.t));
+          s.packet(['d1', [290, 870], 'd2'], 'telemetria', '', { speed: 260 }).then(() => {
+            s.set('dt', fmt(st.t) + ' °C'); s.style('dbar', 'width', Math.round(st.t / 50 * 100) + '%'); s.flash('web');
+          });
+        }, 700);
+      } },
+    { say: 'Com <b>WebXR</b>, a mesma cena abre nos óculos de realidade virtual ou no celular, em realidade aumentada.',
+      do(s) { s.show('d3', 'xr', 'll3'); s.later(900, () => { s.row('tb', 3); s.ans('tb', 3); }); s.every(2300, () => s.packet(['d3'], '', 'dot', { speed: 160 }), 1800); } },
+    { h: ['E o caminho', 'de volta.'],
+      say: 'Você aperta um botão virtual, a página publica um comando e o <b>LED de verdade acende</b>.',
+      do(s) {
+        s.show('c1', 'c2', 'c3');
+        s.later(900, () => s.packet(['c3', [370, 1110], 'c2', [370, 870], 'c1'], 'led/set ON', 'cmd', { speed: 300 }).then(() => {
+          s.set('eled', 'LED ● ligado'); s.cls('eled', 'on'); s.cls('esp', 'glow'); s.flash('espmini');
+          return s.packet(['d1', [290, 870], 'd2'], 'led/estado ON', '', { speed: 300 });
+        }).then(() => { s.set('dled', 'LED ● ligado'); s.cls('dled', 'on'); s.flash('dash'); }));
+      } },
+  ] },
+
+/* 12 ---------------------------------------------------------------- */
+{ title: 'Para guardar', eyebrow: 'Para guardar', ec: 'teal', node: 'bookmark', h: ['Cada um', 'no seu papel.'],
+  f16: { pos: { flow: [900, 140], cta: [1090, 330], end: [1370, 620] } },
+  html: () => `
+    ${el('flow', 70, 560, 'flow', `<span class="fp green">${IC.esp}ESP32</span><span class="fl"><span>MQTT</span></span><span class="fh">${IC.hub}</span><span class="fl"><span>WS</span></span><span class="fp sky">${IC.browser}cena 3D</span>`)}
+    ${table('tb', 70, 720, ['CONCEITO', 'É COMO'], [
+      ['waiter', 'purple', 'API', 'waiter', 'purple', 'o garçom'],
+      ['server', 'green', 'HTTP', 'menu', 'orange', 'pedir e esperar'],
+      ['call', 'teal', 'WebSocket', 'call', 'teal', 'a linha aberta'],
+      ['hub', 'purple', 'MQTT', 'play', 'orange', 'canal com inscritos'],
+      ['hub', 'purple', 'broker', 'play', 'orange', 'a plataforma'],
+      ['esp', 'green', 'ESP32', 'user', 'teal', 'sentidos e mãos']])}
+    ${el('cta', 260, 1250, 'cta', `<a class="solid" href="${LAB_URL}" target="_blank" rel="noopener">${IC.headset}Abrir o laboratório XR</a><button type="button" data-act="quiz">${IC.check}Fazer o quiz</button>`)}
+    ${el('end', 0, 1530, 'endcard', `<span class="av">${IC.esp}</span><span><b>${PERFIL.nome}</b><small>${PERFIL.linha}</small></span>`, 'left:50%;translate:-50% 0')}`,
+  setup(s) { s.q('cta').querySelector('[data-act="quiz"]').addEventListener('click', () => { startIfNeeded(); go(SCENES.length - 1, 0, true); }); },
+  beats: [
+    { say: 'A <b>API</b> é o garçom. O <b>HTTP</b> é pedir e esperar a resposta.',
+      do(s) { s.show('flow'); [0, 1].forEach(i => s.later(500 + i * 1500, () => { s.row('tb', i); s.ans('tb', i); })); } },
+    { say: 'O <b>WebSocket</b> é a linha aberta. O <b>MQTT</b> é o canal com inscritos, e o <b>broker</b> é a plataforma.',
+      do(s) { s.done('tb', 2); [2, 3, 4].forEach(i => s.later(300 + (i - 2) * 1700, () => { s.row('tb', i); s.ans('tb', i); })); } },
+    { say: 'E o ESP32 é quem sente e age no mundo físico. Agora é com você: faça o quiz e abra o laboratório.',
+      do(s) { s.done('tb', 5); s.later(300, () => { s.row('tb', 5); s.ans('tb', 5); }); s.later(2000, () => s.show('cta')); s.later(2800, () => s.show('end')); } },
+  ] },
+
+/* 13 ---------------------------------------------------------------- */
+{ title: 'Quiz', eyebrow: 'Quiz rápido', ec: 'orange', node: 'check', h: ['Bora testar?', '5 perguntas.'], stop: true,
+  f16: { pos: { quiz: [900, 110] } },
+  html: () => el('quiz', 70, 560, 'quiz'),
+  setup(s) { renderQuiz(s, 0, 0); },
+  beats: [
+    { say: 'Toque na resposta que você acha certa. No fim, aparece a sua pontuação.', do(s) { s.show('quiz'); } },
+  ] },
+];
+
+/* ---------- quiz ---------- */
+const QUIZ = [
+  { q: 'No restaurante, quem faz o papel da API?', o: ['O cliente', 'O garçom', 'A cozinha', 'A conta'], a: 1,
+    why: 'O garçom é o intermediário: recebe o pedido num formato combinado e devolve a resposta.' },
+  { q: 'Qual é o problema do polling?', o: ['O servidor nunca responde', 'Pergunta toda hora, mesmo sem novidade', 'Só funciona com cabo de rede', 'Não aceita JSON'], a: 1,
+    why: 'A maioria das perguntas volta com "não mudou". Gasta rede e bateria e ainda atrasa a novidade.' },
+  { q: 'No MQTT, quem entrega as mensagens para os assinantes?', o: ['O próprio ESP32', 'O navegador', 'O broker', 'O roteador Wi-Fi'], a: 2,
+    why: 'Quem publica manda para o broker, e o broker distribui para quem assinou o tópico.' },
+  { q: 'O ESP32 publica em escola/lab1/temperatura. Qual assinatura recebe?', o: ['escola/lab2/#', 'escola/+/temperatura', 'escola/lab1/luz', 'lab1/temperatura'], a: 1,
+    why: 'O + vale qualquer nome em um nível. Então escola/+/temperatura pega lab1, lab2, lab3…' },
+  { q: 'Por que a página 3D usa MQTT dentro de um WebSocket?', o: ['O navegador não abre conexão TCP pura', 'WebSocket é mais antigo que MQTT', 'Para poupar a bateria do ESP32', 'Porque o Babylon.js exige'], a: 0,
+    why: 'Páginas web não podem abrir sockets TCP diretos. O WebSocket é a porta que o navegador oferece.' },
+];
+function renderQuiz(s, i, score) {
+  const box = s.q('quiz'); if (!box) return;
+  if (i >= QUIZ.length) {
+    const msg = score === QUIZ.length ? 'Perfeito! Você está pronto para o laboratório.' : score >= 3 ? 'Muito bem! Reveja os capítulos das perguntas que errou.' : 'Vale rever os capítulos de MQTT e WebSocket.';
+    box.innerHTML = `<div class="qz-end"><span class="tag">Resultado</span><div class="qz-score">${score}<small>/${QUIZ.length}</small></div><p>${msg}</p><div class="qz-actions"><a class="qbtn solid" href="${LAB_URL}" target="_blank" rel="noopener">Abrir o laboratório XR</a><button class="qbtn" type="button" data-act="again">Refazer o quiz</button></div></div>`;
+    box.querySelector('[data-act="again"]').onclick = () => renderQuiz(s, 0, 0);
+    return;
+  }
+  const q = QUIZ[i];
+  box.innerHTML = `<div class="qz-head"><span class="tag">Pergunta ${i + 1} de ${QUIZ.length}</span><span class="tag">Acertos: ${score}</span></div>
+    <h3>${q.q}</h3>
+    <div class="qz-opts">${q.o.map((o, j) => `<button class="qopt" type="button" data-j="${j}"><b>${'ABCD'[j]}</b>${o}</button>`).join('')}</div>
+    <p class="qz-fb" aria-live="polite"></p>
+    <button class="qbtn solid qz-next" type="button" hidden>${i + 1 < QUIZ.length ? 'Próxima pergunta' : 'Ver resultado'}</button>`;
+  const fb = box.querySelector('.qz-fb'), next = box.querySelector('.qz-next');
+  let answered = false;
+  box.querySelectorAll('.qopt').forEach(b => b.onclick = () => {
+    if (answered) return; answered = true;
+    const j = +b.dataset.j, ok = j === q.a; if (ok) score++;
+    box.querySelectorAll('.qopt').forEach((x, k) => { x.disabled = true; if (k === q.a) x.classList.add('right'); else if (k === j) x.classList.add('wrong'); });
+    fb.innerHTML = (ok ? '<b>Isso!</b> ' : '<b>Quase.</b> ') + q.why;
+    next.hidden = false; next.focus({ preventScroll: true });
+  });
+  next.onclick = () => renderQuiz(s, i + 1, score);
+}
+
+/* =====================================================================
+   NARRAÇÃO (Web Speech API)
+   ===================================================================== */
+const synth = 'speechSynthesis' in window ? window.speechSynthesis : null;
+const voice = { v: null, list: [] };
+const P = { si: 0, bi: 0, token: 0, running: 0, started: false, waiters: [], lastCancel: 0, manual: null, audio: null, audioDone: null };
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
+
+const plain = h => h.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ');
+const splitSentences = t => t.match(/[^.!?…]+[.!?…]*\s*/g)?.map(x => x.trim()).filter(Boolean) || [t];
+const estimate = t => Math.max(1400, t.split(/\s+/).length / 2.6 * 1000 + 250);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function synthCancel() { if (synth) { synth.cancel(); P.lastCancel = performance.now(); } }
+function vscore(v) { return (/pt[-_]BR/i.test(v.lang) ? 10 : 0) + (/natural|neural|online/i.test(v.name) ? 4 : 0) + (/google/i.test(v.name) ? 2 : 0); }
+function loadVoices() {
+  const sel = $('#voiceSel');
+  if (!synth) { sel.innerHTML = '<option>Sem voz neste navegador</option>'; sel.disabled = true; return; }
+  const pt = synth.getVoices().filter(v => /^pt/i.test(v.lang)).sort((a, b) => vscore(b) - vscore(a));
+  voice.list = pt;
+  if (!pt.length) { sel.innerHTML = '<option>Voz padrão do sistema</option>'; voice.v = null; return; }
+  sel.innerHTML = pt.map((v, i) => `<option value="${i}">${v.name.replace(/^(Microsoft|Google)\s*/, '').replace(/\s*-\s*Portuguese.*$/i, '')} · ${v.lang}</option>`).join('');
+  const saved = store.get('aula-voz');
+  const idx = Math.max(0, pt.findIndex(v => v.name === saved));
+  sel.value = String(idx); voice.v = pt[idx];
+}
+async function speakOne(text) {
+  const since = performance.now() - P.lastCancel;
+  if (since < 150) await sleep(150 - since);
+  return new Promise(res => {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = voice.v?.lang || 'pt-BR'; if (voice.v) u.voice = voice.v;
+    u.rate = clamp(clock.speed, .5, 2);
+    let done = false;
+    const fin = () => { if (done) return; done = true; clearTimeout(wd); res(); };
+    const wd = setTimeout(fin, estimate(text) / clock.speed * 2.2 + 4000);
+    u.onend = fin; u.onerror = fin;
+    synth.resume(); synth.speak(u);
+  });
+}
+function untilPlaying() { return clock.playing ? Promise.resolve() : new Promise(r => P.waiters.push(r)); }
+
+// identificador do trecho, igual ao do roteiro.md e ao nome do arquivo de áudio: "02-3" = capítulo 2, trecho 3
+const bid = (si, bi) => String(si + 1).padStart(2, '0') + '-' + (bi + 1);
+const allIds = () => SCENES.flatMap((s, si) => s.beats.map((_, bi) => bid(si, bi)));
+
+/* quem narra: 'tts' voz do navegador · 'mine' minhas gravações · 'live' ao vivo, avanço manual · 'mute' só legenda */
+const MODES = ['tts', 'mine', 'live', 'mute'];
+const MODE = { v: MODES.includes(store.get('aula-modo')) ? store.get('aula-modo') : 'tts', missing: new Set() };
+
+async function narrate(beat, my) {
+  const id = bid(P.si, P.bi);
+  if (REC.on) return narrateRecord(my, id);
+  if (MODE.v === 'live') { await waitManual(my); return; }
+  if (MODE.v === 'mine') {
+    const src = await findTake(id);
+    if (my !== P.token) return;
+    if (src) return playTake(src, id);
+    if (!MODE.missing.has(id)) { MODE.missing.add(id); toast(`Sem gravação para o trecho ${id}: usando a voz do navegador.`); }
+  }
+  return narrateTTS(beat, my, MODE.v === 'mute' || !synth || document.body.classList.contains('exportando'));
+}
+async function narrateTTS(beat, my, silent) {
+  const parts = splitSentences(beat.tts || plain(beat.say));
+  for (let i = 0; i < parts.length; i++) {
+    await untilPlaying(); if (my !== P.token) return;
+    if (!silent) {
+      await speakOne(parts[i]);
+      if (my !== P.token) return;
+      if (!clock.playing) { i--; continue; } // pausou no meio: repete a frase ao continuar
+    } else {
+      await waitPlay(estimate(parts[i]));
+      if (my !== P.token) return;
+    }
+  }
+}
+
+/* ---------- avanço manual (modo ao vivo e gravação) ---------- */
+function waitManual(my) {
+  return new Promise(res => { P.manual = { my, res }; document.body.classList.add('waiting'); updateUI(); });
+}
+function manualNext() {
+  const m = P.manual;
+  if (!m || m.my !== P.token) return false;
+  P.manual = null; document.body.classList.remove('waiting'); m.res(true); updateUI();
+  return true;
+}
+function cancelManual() { const m = P.manual; P.manual = null; document.body.classList.remove('waiting'); m?.res(false); }
+
+/* ---------- tocar as minhas gravações ---------- */
+const AUDIO_EXT = ['webm', 'mp3', 'm4a', 'wav', 'ogg'];
+const takeUrl = new Map(); // id → endereço do áudio (blob: do navegador ou audio/arquivo), null = não existe
+function canLoad(url) {
+  return new Promise(res => {
+    const a = new Audio(); let t = 0;
+    const fin = ok => { clearTimeout(t); a.onloadedmetadata = a.onerror = null; a.removeAttribute('src'); res(ok); };
+    t = setTimeout(() => fin(false), 2500);
+    a.preload = 'metadata'; a.onloadedmetadata = () => fin(true); a.onerror = () => fin(false); a.src = url;
+  });
+}
+async function findTake(id) {
+  if (REC.takes.has(id)) {
+    let u = takeUrl.get(id);
+    if (!u || !u.startsWith('blob:')) { u = URL.createObjectURL(REC.takes.get(id)); takeUrl.set(id, u); }
+    return u;
+  }
+  if (takeUrl.has(id)) return takeUrl.get(id);
+  if (window.AUDIO_INDEX) { // audio/indice.js, escrito pelo gravador: diz exatamente quais arquivos existem
+    const f = window.AUDIO_INDEX[id], u = f ? 'audio/' + f : null;
+    takeUrl.set(id, u); return u;
+  }
+  for (const ext of AUDIO_EXT) { const url = `audio/${id}.${ext}`; if (await canLoad(url)) { takeUrl.set(id, url); return url; } }
+  takeUrl.set(id, null); return null;
+}
+function loadAudioIndex() {
+  return new Promise(res => {
+    const s = document.createElement('script');
+    s.src = 'audio/indice.js?v=' + Date.now();
+    s.onload = () => res(true); s.onerror = () => { s.remove(); res(false); };
+    document.head.append(s);
+  });
+}
+function playTake(src, id) {
+  return new Promise(res => {
+    const a = new Audio(src); a.playbackRate = clock.speed;
+    const done = () => { if (P.audio === a) { P.audio = null; P.audioDone = null; } res(); };
+    P.audio = a; P.audioDone = done; a.onended = done; a.onerror = done;
+    a.addEventListener('playing', () => window.__expo?.(JSON.stringify({ ev: 'audio', id, url: src, t: Date.now() })), { once: true });
+    if (clock.playing) a.play().catch(done);
+  });
+}
+function stopTake() { const a = P.audio, d = P.audioDone; if (a) a.pause(); d?.(); }
+async function scanTakes() {
+  const ids = allIds(); let found = 0, i = 0;
+  const worker = async () => { while (i < ids.length) { if (await findTake(ids[i++])) found++; } };
+  await Promise.all([worker(), worker(), worker(), worker()]);
+  return { found, total: ids.length };
+}
+
+/* ---------- gravar a minha voz, trecho por trecho ---------- */
+const REC = { on: false, stream: null, dir: null, takes: new Map(), cur: null, mime: '', stopAfter: 0 };
+const extOf = type => /ogg/.test(type) ? 'ogg' : /mp4|m4a|aac/.test(type) ? 'm4a' : 'webm';
+const idb = { // guarda as gravações no próprio navegador (sobrevive a recarregar a página)
+  p: null,
+  open() {
+    return this.p ||= new Promise(res => {
+      try {
+        const r = indexedDB.open('aula-voz', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('takes');
+        r.onsuccess = () => res(r.result); r.onerror = () => res(null);
+      } catch { res(null); }
+    });
+  },
+  async put(id, blob) { const db = await this.open(); if (!db) return; try { db.transaction('takes', 'readwrite').objectStore('takes').put(blob, id); } catch { } },
+  async loadAll() {
+    const db = await this.open(); if (!db) return;
+    await new Promise(res => {
+      try {
+        const req = db.transaction('takes').objectStore('takes').openCursor();
+        req.onsuccess = () => { const c = req.result; if (!c) return res(); REC.takes.set(c.key, c.value); c.continue(); };
+        req.onerror = () => res();
+      } catch { res(); }
+    });
+  },
+};
+async function narrateRecord(my, id) {
+  const rec = new MediaRecorder(REC.stream, REC.mime ? { mimeType: REC.mime } : undefined);
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  const stopped = new Promise(r => { rec.onstop = r; });
+  rec.start(); REC.cur = rec;
+  $('#recId').textContent = id; updateRecUI();
+  const ok = await waitManual(my);
+  if (rec.state !== 'inactive') rec.stop();
+  await stopped;
+  if (REC.cur === rec) REC.cur = null;
+  if (ok) await saveTake(id, new Blob(chunks, { type: rec.mimeType || REC.mime || 'audio/webm' }));
+}
+async function writeToDir(id, blob) {
+  const fh = await REC.dir.getFileHandle(`${id}.${extOf(blob.type)}`, { create: true });
+  const w = await fh.createWritable(); await w.write(blob); await w.close();
+  await writeIndex();
+}
+async function writeIndex() { // lista os áudios da pasta em audio/indice.js
+  const map = {};
+  for await (const [name] of REC.dir.entries()) {
+    const m = /^(\d\d-\d+)\.(webm|mp3|m4a|wav|ogg)$/i.exec(name);
+    if (m && (!map[m[1]] || /webm/i.test(m[2]))) map[m[1]] = name;
+  }
+  const fh = await REC.dir.getFileHandle('indice.js', { create: true });
+  const w = await fh.createWritable();
+  await w.write('// Gerado pelo gravador do index.html: quais trechos têm áudio nesta pasta.\nwindow.AUDIO_INDEX = ' + JSON.stringify(map, null, 1) + ';\n');
+  await w.close();
+  window.AUDIO_INDEX = map;
+}
+async function saveTake(id, blob) {
+  REC.takes.set(id, blob);
+  const old = takeUrl.get(id); if (old?.startsWith('blob:')) URL.revokeObjectURL(old);
+  takeUrl.delete(id);
+  idb.put(id, blob);
+  if (REC.dir) { try { await writeToDir(id, blob); } catch { toast('Não consegui salvar na pasta. A gravação ficou guardada no navegador.'); } }
+  updateRecUI();
+}
+async function ensureMic() {
+  if (REC.stream) return true;
+  if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) { toast('Este navegador não grava áudio. Use o Chrome ou o Edge.'); return false; }
+  try { REC.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+  catch { toast('Sem acesso ao microfone. Libere o microfone para esta página e tente de novo.'); return false; }
+  REC.mime = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'].find(m => MediaRecorder.isTypeSupported?.(m)) || '';
+  try { // medidor de volume, para ver que o microfone está captando
+    const ctx = new AudioContext(), an = ctx.createAnalyser(); an.fftSize = 512;
+    ctx.createMediaStreamSource(REC.stream).connect(an);
+    const buf = new Uint8Array(an.fftSize), bar = $('#recBar');
+    const tick = () => { an.getByteTimeDomainData(buf); let m = 0; for (const v of buf) m = Math.max(m, Math.abs(v - 128)); bar.style.width = Math.min(100, m / 128 * 170) + '%'; requestAnimationFrame(tick); };
+    tick();
+  } catch { }
+  return true;
+}
+async function startRecording() {
+  if (REC.on) return;
+  if (!(await ensureMic())) return;
+  REC.on = true; document.body.classList.add('recording');
+  $('#recStart').disabled = true; $('#recStop').disabled = false;
+  startIfNeeded(); synthCancel(); stopTake();
+  go(P.si, P.bi, true);
+  updateRecUI();
+}
+function stopRecording() {
+  if (!REC.on) return;
+  REC.on = false; document.body.classList.remove('recording');
+  $('#recStart').disabled = false; $('#recStop').disabled = true;
+  REC.stopAfter = P.token;
+  if (!manualNext()) { REC.stopAfter = 0; go(P.si, P.bi, false); setPlaying(false); } // fecha e salva o trecho em andamento
+  updateRecUI();
+}
+async function chooseDir() {
+  if (!window.showDirectoryPicker) { toast('Este navegador não salva direto em pasta. Use "Baixar gravações" e mova os arquivos para a pasta audio.'); return; }
+  try { REC.dir = await window.showDirectoryPicker({ id: 'aula-audio', mode: 'readwrite' }); } catch { return; }
+  $('#dirName').innerHTML = `Salvando em <b>${REC.dir.name}/</b>`;
+  if (REC.dir.name !== 'audio') toast('Dica: o player procura os arquivos na pasta "audio", ao lado do index.html.');
+  let n = 0;
+  for (const [id, blob] of REC.takes) { try { await writeToDir(id, blob); n++; } catch { } }
+  if (n) toast(`${n} gravações que estavam no navegador foram salvas na pasta.`);
+}
+async function downloadTakes() {
+  if (!REC.takes.size) { toast('Ainda não há gravações neste navegador.'); return; }
+  for (const [id, blob] of [...REC.takes].sort((a, b) => a[0].localeCompare(b[0]))) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${id}.${extOf(blob.type)}`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    await sleep(300);
+  }
+  toast('Mova os arquivos baixados para a pasta audio do projeto.');
+}
+function updateRecUI() {
+  const id = bid(P.si, P.bi), total = allIds().length;
+  $('#recStatus').innerHTML = `<b>${REC.takes.size} de ${total}</b> trechos gravados neste navegador. Trecho <b>${id}</b>: ${REC.takes.has(id) ? 'já tem gravação' : 'sem gravação'}.` +
+    (REC.on ? ' Leia a legenda e aperte <kbd>→</kbd> no fim do trecho.' : '');
+}
+
+/* =====================================================================
+   PLAYER
+   ===================================================================== */
+let S = null, curHead = '';
+const hdEl = $('#hd'), eyebrowEl = $('#eyebrow'), headlineEl = $('#headline'), subEl = $('#sub');
+
+function headFor(sc, b) { for (let i = b; i >= 0; i--) if (sc.beats[i].h) return sc.beats[i].h; return sc.h; }
+function modeFor(sc, b) { for (let i = b; i >= 0; i--) if (sc.beats[i].mode) return sc.beats[i].mode; return sc.mode || 'left'; }
+function setHeader(sc, b) {
+  const h = headFor(sc, b), mode = modeFor(sc, b);
+  hdEl.className = 'hd ' + mode;
+  eyebrowEl.textContent = sc.eyebrow; eyebrowEl.className = 'eyebrow ' + sc.ec;
+  const key = h.join('|') + mode;
+  if (key !== curHead) {
+    curHead = key; let n = 0;
+    const words = t => t.split(' ').map(w => `<span class="w" style="animation-delay:${(n++) * 85}ms">${w}</span>`).join(' ');
+    headlineEl.innerHTML = `<span class="l1">${words(h[0])}</span><span class="l2">${words(h[1])}</span>`;
+  }
+  subEl.innerHTML = sc.beats[b].say;
+  subEl.classList.remove('in'); void subEl.offsetWidth; subEl.classList.add('in');
+}
+function setPlaying(on) {
+  clock.playing = on;
+  stageEl.getAnimations({ subtree: true }).forEach(a => {
+    if (on && a.playState === 'paused') a.play();
+    else if (!on && a.playState === 'running') a.pause();
+  });
+  if (!on) { synthCancel(); P.audio?.pause(); if (REC.cur?.state === 'recording') REC.cur.pause(); }
+  else {
+    const w = P.waiters; P.waiters = []; w.forEach(r => r());
+    P.audio?.play().catch(() => P.audioDone?.());
+    if (REC.cur?.state === 'paused') REC.cur.resume();
+  }
+  $('#play').setAttribute('aria-label', on ? 'Pausar' : 'Reproduzir');
+  $('#playIcon').innerHTML = on ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/>' : '<path d="M8 5v14l11-7z" fill="currentColor"/>';
+}
+function go(si, bi = 0, autoplay = clock.playing) {
+  si = clamp(si, 0, SCENES.length - 1);
+  const sc = SCENES[si]; bi = clamp(bi, 0, sc.beats.length - 1);
+  const newScene = P.forceReset || !S || S.sc !== sc;
+  P.forceReset = false;
+  const my = ++P.token; P.running = 0;
+  synthCancel(); cancelManual(); stopTake();
+  S?.destroy();
+  S = new Stage(sc); P.si = si; P.bi = bi;
+  stageEl.classList.add('instant'); S.instant = true;
+  S.build();
+  const upto = autoplay ? bi : bi + 1;
+  for (let b = 0; b < upto; b++) sc.beats[b].do(S);
+  if (newScene) curHead = '';
+  setHeader(sc, bi);
+  setEdge(si, (upto) / sc.beats.length, newScene);
+  updateUI();
+  const st = S;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (my !== P.token) return;
+    st.instant = false; stageEl.classList.remove('instant');
+    if (autoplay) { if (!clock.playing) setPlaying(true); runBeats(my, si, bi); }
+  }));
+}
+async function runBeats(my, si, bi) {
+  P.running = my;
+  const sc = SCENES[si];
+  for (let b = bi; b < sc.beats.length; b++) {
+    if (my !== P.token) return;
+    P.bi = b; updateUI(); setHeader(sc, b); setEdge(si, (b + 1) / sc.beats.length);
+    window.__expo?.(JSON.stringify({ ev: 'beat', id: bid(si, b), t: Date.now() })); // usado pelo exportador de vídeo
+    sc.beats[b].do(S);
+    await narrate(sc.beats[b], my);
+    if (my !== P.token) return;
+    if (REC.stopAfter === my) { // encerrou a gravação: para no próximo trecho, sem tocar nada
+      REC.stopAfter = 0;
+      const last = b + 1 >= sc.beats.length, end = last && si + 1 >= SCENES.length;
+      go(end ? si : last ? si + 1 : si, end ? b : last ? 0 : b + 1, false); setPlaying(false);
+      return;
+    }
+    // com a voz gravada, a pausa natural já está no áudio: só um respiro curto entre os trechos
+    await waitPlay(REC.on || MODE.v === 'live' ? 150 : MODE.v === 'mine' ? 150 : (sc.beats[b].hold ?? 600));
+    if (my !== P.token) return;
+  }
+  if (si < SCENES.length - 1 && !sc.stop) go(si + 1, 0, true);
+  else { P.running = 0; setPlaying(false); window.__expo?.(JSON.stringify({ ev: 'end', t: Date.now() })); }
+}
+function startIfNeeded() {
+  if (P.started) return;
+  P.started = true; stageEl.classList.add('started');
+}
+function togglePlay() {
+  if (!P.started) { startIfNeeded(); go(0, 0, true); return; }
+  if (clock.playing) setPlaying(false);
+  else if (P.running && P.running === P.token) setPlaying(true);
+  else go(P.si, P.bi, true);
+}
+function stepBeat(d) {
+  startIfNeeded();
+  let si = P.si, bi = P.bi + d;
+  if (bi < 0) { si--; if (si < 0) { si = 0; bi = 0; } else bi = SCENES[si].beats.length - 1; }
+  else if (bi >= SCENES[si].beats.length) { si++; bi = 0; if (si >= SCENES.length) { si = SCENES.length - 1; bi = SCENES[si].beats.length - 1; } }
+  go(si, bi);
+}
+function stepChapter(d) { startIfNeeded(); go(P.si + d, 0); }
+
+/* ---------- interface lateral ---------- */
+function updateUI() {
+  const sc = SCENES[P.si];
+  $('#whereCh').textContent = `${String(P.si + 1).padStart(2, '0')}/${SCENES.length} · ${sc.title}`;
+  $('#whereBeat').textContent = `trecho ${bid(P.si, P.bi)}` + (P.manual ? ' · aperte →' : '');
+  if (!$('#recPanel').hidden) updateRecUI();
+  document.querySelectorAll('.seg').forEach((b, i) => {
+    const pct = i < P.si ? 100 : i > P.si ? 0 : (P.bi + 1) / sc.beats.length * 100;
+    b.querySelector('i').style.width = pct + '%';
+  });
+  document.querySelectorAll('.chapters button').forEach((b, i) => b.setAttribute('aria-current', String(i === P.si)));
+}
+function buildChrome() {
+  $('#profile').innerHTML = `<span class="av">${IC.esp}</span><span><b>${PERFIL.nome}</b><small>${PERFIL.linha}</small></span>`;
+  $('#labLink').href = LAB_URL;
+  $('#progress').innerHTML = SCENES.map((s, i) => `<button class="seg" type="button" data-i="${i}" title="${i + 1}. ${s.title}" aria-label="Capítulo ${i + 1}: ${s.title}"><span><i></i></span></button>`).join('');
+  $('#chapters').innerHTML = SCENES.map((s, i) => `<li><button type="button" data-i="${i}"><small>${String(i + 1).padStart(2, '0')}</small>${s.title}</button></li>`).join('');
+  const jump = e => { const b = e.target.closest('[data-i]'); if (!b) return; startIfNeeded(); go(+b.dataset.i, 0, true); };
+  $('#progress').addEventListener('click', jump);
+  $('#chapters').addEventListener('click', jump);
+}
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('show'), 2800); }
+function setMode(v, quiet) {
+  MODE.v = v; store.set('aula-modo', v); $('#modeSel').value = v;
+  $('#voiceSel').hidden = v !== 'tts';
+  if (v !== 'tts') synthCancel();
+  const note = $('#modeNote');
+  note.hidden = v === 'tts';
+  if (v === 'live') note.innerHTML = 'Cada trecho anima e espera você. Fale e aperte <kbd>→</kbd>, <kbd>espaço</kbd> ou o passador de slides para seguir.';
+  if (v === 'mute') note.textContent = 'Sem voz: cada trecho fica na tela pelo tempo de leitura da legenda.';
+  if (v === 'mine') {
+    note.textContent = 'Procurando gravações…';
+    for (const [k, u] of takeUrl) if (!u) takeUrl.delete(k);
+    MODE.missing.clear();
+    scanTakes().then(({ found, total }) => {
+      if (MODE.v !== 'mine') return;
+      note.innerHTML = found ? `<b>${found} de ${total}</b> trechos têm gravação. Os que faltam usam a voz do navegador.`
+        : 'Nenhuma gravação encontrada. Use "Gravar minha voz" ou coloque os arquivos na pasta <b>audio</b> (veja o roteiro.md).';
+    });
+  }
+  // trocou no meio de um trecho: recomeça o trecho com o novo narrador
+  if (!quiet && clock.playing && P.running === P.token && !REC.on) go(P.si, P.bi, true);
+}
+function setFormat(v, rebuild) {
+  FMT.v = v === '16x9' ? '16x9' : '9x16';
+  [W, H] = is16() ? [1920, 1080] : [1080, 1920];
+  document.body.classList.toggle('f16', is16());
+  for (const s of [$('#edge'), wiresSvg]) s.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  $('#fmtSel').value = FMT.v; store.set('aula-formato', FMT.v);
+  drawBg(); fit();
+  if (rebuild) { P.forceReset = true; go(P.si, P.bi, clock.playing && P.running === P.token); }
+}
+function cycleMode() {
+  const v = MODES[(MODES.indexOf(MODE.v) + 1) % MODES.length];
+  setMode(v); toast($('#modeSel').selectedOptions[0].textContent);
+}
+function toggleFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen?.();
+  else screenEl.requestFullscreen?.().catch(() => toast('Tela cheia indisponível aqui. Use F11 no navegador.'));
+}
+function toggleRec() { const on = document.body.classList.toggle('rec'); if (on) toast('Modo gravação: só o vídeo aparece. Aperte H para voltar.'); requestAnimationFrame(fit); }
+
+function fit() {
+  const r = screenEl.getBoundingClientRect();
+  const k = Math.min(r.width / W, r.height / H);
+  const ox = (r.width - W * k) / 2, oy = (r.height - H * k) / 2;
+  stageEl.style.transform = `translate(${ox}px,${oy}px) scale(${k})`;
+}
+
+/* ---------- fundo: colmeia escura com brilhos ---------- */
+function drawBg() {
+  const c = $('#bg'); c.width = W; c.height = H; c.style.width = W + 'px'; c.style.height = H + 'px';
+  const g = c.getContext('2d');
+  const cs = getComputedStyle(document.documentElement), v = n => cs.getPropertyValue(n).trim();
+  g.fillStyle = v('--bg'); g.fillRect(0, 0, W, H);
+  const glow = (x, y, r, col, a) => { const gr = g.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, col); gr.addColorStop(1, 'transparent'); g.globalAlpha = a; g.fillStyle = gr; g.fillRect(0, 0, W, H); g.globalAlpha = 1; };
+  const M = Math.max(W, H);
+  glow(W * .76, H * .55, M * .4, v('--purple'), .16);
+  glow(W * .17, H * .93, M * .36, v('--teal'), .14);
+  glow(W * .83, H * .08, M * .26, v('--purple'), .06);
+  const R = 30, hw = Math.sqrt(3) * R;
+  g.strokeStyle = 'rgba(255,255,255,.045)'; g.lineWidth = 1.5;
+  for (let row = -1, y = 0; y < H + R * 2; row++, y = row * R * 1.5) {
+    for (let x = (row % 2 ? hw / 2 : 0) - hw; x < W + hw; x += hw) {
+      g.beginPath();
+      for (let k = 0; k < 6; k++) { const a = Math.PI / 3 * k + Math.PI / 6; g.lineTo(x + R * Math.cos(a), y + R * Math.sin(a)); }
+      g.closePath(); g.stroke();
+    }
+  }
+  const vg = g.createLinearGradient(0, 0, 0, H); vg.addColorStop(0, 'rgba(0,0,0,.35)'); vg.addColorStop(.25, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.2)');
+  g.fillStyle = vg; g.fillRect(0, 0, W, H);
+}
+
+/* ---------- ligações ---------- */
+$('#play').onclick = togglePlay;
+$('#bigplay').onclick = togglePlay;
+$('#prevBeat').onclick = () => stepBeat(-1);
+$('#nextBeat').onclick = () => stepBeat(1);
+$('#prevCh').onclick = () => stepChapter(-1);
+$('#nextCh').onclick = () => stepChapter(1);
+$('#modeSel').onchange = e => { store.set('aula-modo-escolhido', '1'); setMode(e.target.value); };
+$('#fmtSel').onchange = e => setFormat(e.target.value, true);
+$('#recOpen').onclick = () => { const p = $('#recPanel'); p.hidden = !p.hidden; $('#recOpen').setAttribute('aria-expanded', String(!p.hidden)); updateRecUI(); };
+$('#recStart').onclick = startRecording;
+$('#recStop').onclick = stopRecording;
+$('#dirBtn').onclick = chooseDir;
+$('#recDl').onclick = downloadTakes;
+screenEl.addEventListener('click', e => { if (!e.target.closest('button, a') && P.manual) manualNext(); });
+$('#fsBtn').onclick = toggleFullscreen;
+$('#recBtn').onclick = toggleRec;
+$('#voiceSel').onchange = e => { voice.v = voice.list[+e.target.value] || null; if (voice.v) store.set('aula-voz', voice.v.name); };
+$('#speedSel').onchange = e => {
+  clock.speed = +e.target.value;
+  pktLayer.getAnimations({ subtree: true }).forEach(a => { a.playbackRate = clock.speed; });
+};
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target;
+  if (t.closest?.('select, input, textarea')) return;
+  const onButton = t.closest?.('button, a');
+  // no modo ao vivo e na gravação, → / PageDown / espaço (e o passador de slides) fecham o trecho atual
+  const advance = () => { if (!manualNext()) stepBeat(1); };
+  switch (e.key) {
+    case ' ': case 'k': case 'K':
+      if (onButton && e.key === ' ') return; e.preventDefault();
+      if (P.manual) manualNext(); else togglePlay();
+      break;
+    case 'ArrowRight': e.preventDefault(); e.shiftKey ? stepChapter(1) : advance(); break;
+    case 'ArrowLeft': e.preventDefault(); e.shiftKey ? stepChapter(-1) : stepBeat(-1); break;
+    case 'PageDown': e.preventDefault(); (P.manual || MODE.v === 'live' || REC.on) ? advance() : stepChapter(1); break;
+    case 'PageUp': e.preventDefault(); (MODE.v === 'live' || REC.on) ? stepBeat(-1) : stepChapter(-1); break;
+    case 'Escape': if (REC.on) { e.preventDefault(); stopRecording(); } break;
+    case 'Home': e.preventDefault(); startIfNeeded(); go(0, 0); break;
+    case 'f': case 'F': toggleFullscreen(); break;
+    case 'v': case 'V': cycleMode(); break;
+    case 'h': case 'H': toggleRec(); break;
+  }
+});
+new ResizeObserver(fit).observe(screenEl);
+document.addEventListener('fullscreenchange', () => requestAnimationFrame(fit));
+if (synth) { loadVoices(); synth.addEventListener?.('voiceschanged', loadVoices); } else loadVoices();
+setMode(MODE.v, true);
+Promise.all([idb.loadAll(), loadAudioIndex()]).then(() => {
+  updateRecUI();
+  // há narração gravada na pasta audio: ela vira o narrador padrão (a menos que você tenha escolhido outro)
+  const temVoz = window.AUDIO_INDEX && Object.keys(window.AUDIO_INDEX).length;
+  if (temVoz && !store.get('aula-modo-escolhido') && !document.body.classList.contains('exportando')) setMode('mine', true);
+  else if (MODE.v === 'mine') setMode('mine', true);
+});
+
+// ?formato=16x9 abre direto no formato do Canva · ?exportar=1 é usado pelo ferramentas/exportar-video.mjs
+const QS = new URLSearchParams(location.search);
+setFormat(QS.get('formato') || store.get('aula-formato') || '9x16');
+if (QS.get('exportar')) {
+  document.body.classList.add('rec', 'exportando');
+  setMode(QS.get('voz') === 'minha' ? 'mine' : 'mute', true);
+  if (QS.get('lento')) { clock.speed = clamp(+QS.get('lento') || 1, .1, 1); clock.sync = true; }
+}
+buildChrome();
+// estado inicial: abertura parada, esperando o "Assistir".
+// Link direto para um capítulo: index.html#c5 abre o capítulo 5 já montado.
+function initial() {
+  const m = /^#c(\d+)$/.exec(location.hash);
+  if (m) { const si = clamp(+m[1] - 1, 0, SCENES.length - 1); startIfNeeded(); go(si, SCENES[si].beats.length - 1, false); }
+  else go(0, 0, false);
+}
+initial();
+document.fonts?.ready.then(() => { fit(); if (!P.started && !clock.playing) initial(); }); // só antes de qualquer clique
+window.addEventListener('hashchange', () => { if (/^#c\d+$/.test(location.hash)) { setPlaying(false); initial(); } });
+</script>
+</body>
+</html>

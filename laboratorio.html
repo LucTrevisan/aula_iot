@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bancada XR</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/babylonjs@8.56.2/babylon.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-gui@8.56.2/babylon.gui.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/babylonjs-materials@8.56.2/babylonjs.materials.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mqtt@5.14.1/dist/mqtt.min.js"></script>
+<style>
+/* Layout: cena 3D ocupando a maior parte da tela, painel lateral com conexão, leituras, tópicos e monitor MQTT */
+:root{
+  --bg:#0C0D11;
+  --bg-2:#111318;
+  --card:#16181E;
+  --card-2:#1E2129;
+  --border:#2A2E37;
+  --border-2:#3A3F4B;
+  --text:#F3F4F6;
+  --muted:#9BA1AD;
+  --faint:#666D7B;
+  --orange:#FF8A3D;
+  --teal:#2FE3C2;
+  --purple:#A98BFA;
+  --green:#4ADE80;
+  --red:#F87171;
+  --f-ui:"Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}
+:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+[hidden]{display:none!important}
+
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));border-bottom:1px solid var(--border);background:var(--bg-2)}
+.back{color:var(--muted);text-decoration:none;font-weight:600;padding:8px 10px;border-radius:10px}
+.back:hover{background:var(--card-2);color:var(--text)}
+.ttl{display:grid;gap:2px;margin-right:auto}
+.kicker{font:700 11px/1 var(--f-mono);letter-spacing:.18em;text-transform:uppercase;color:var(--teal)}
+.ttl h1{margin:0;font:800 22px/1.1 var(--f-ui);letter-spacing:-.01em}
+.ttl h1 em{font-style:normal;color:var(--orange)}
+.pills{display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px;border-radius:999px;border:1px solid var(--border-2);font:600 12px/1 var(--f-mono);color:var(--muted);white-space:nowrap}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.pill.ok{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,transparent)}.pill.ok::before{background:var(--green)}
+.pill.warn{color:var(--orange);border-color:color-mix(in srgb,var(--orange) 45%,transparent)}.pill.warn::before{background:var(--orange)}
+.pill.bad{color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}.pill.bad::before{background:var(--red)}
+.pill.sim{color:var(--purple);border-color:color-mix(in srgb,var(--purple) 45%,transparent)}.pill.sim::before{background:var(--purple)}
+.xr{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--border-2);background:var(--card);color:var(--text);font-weight:700;cursor:pointer;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--orange)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.solid{background:var(--orange);border-color:var(--orange);color:var(--bg)}
+.btn.teal{background:var(--teal);border-color:var(--teal);color:var(--bg)}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 380px;min-height:0}
+.view{position:relative;min-height:0;background:var(--bg)}
+#c{width:100%;height:100%;display:block;outline:none;touch-action:none}
+.hint{position:absolute;left:16px;bottom:14px;margin:0;font:500 12.5px/1.4 var(--f-ui);color:var(--muted);background:rgba(12,13,17,.75);padding:8px 12px;border-radius:10px;pointer-events:none;max-width:calc(100% - 32px)}
+.statusMsg{position:absolute;left:16px;top:14px;right:16px;margin:0;font:600 13px/1.45 var(--f-ui);color:var(--text);pointer-events:none}
+.statusMsg span{display:inline-block;background:rgba(12,13,17,.85);border:1px solid var(--border-2);padding:8px 12px;border-radius:10px;max-width:640px}
+.side{overflow:auto;border-left:1px solid var(--border);background:var(--bg-2);padding-block:14px;padding-left:14px;padding-right:max(14px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;display:grid;gap:10px}
+.card h2{margin:0;font:700 11.5px/1 var(--f-mono);letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:4px}
+.seg2 label{display:flex;justify-content:center;align-items:center;height:34px;border-radius:9px;cursor:pointer;font-weight:700;color:var(--muted)}
+.seg2 input{position:absolute;opacity:0;pointer-events:none}
+.seg2 label:has(input:checked){background:var(--card-2);color:var(--text)}
+.seg2 label:has(input:focus-visible){outline:2px solid var(--orange)}
+.fld{display:grid;gap:6px;font:600 12px/1.2 var(--f-ui);color:var(--muted)}
+.fld input,.fld select,.pub input{height:38px;border-radius:10px;border:1px solid var(--border);background:var(--bg-2);color:var(--text);padding:0 10px;min-width:0;width:100%}
+.fld input{font:500 13px var(--f-mono)}
+.chk{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:13px;cursor:pointer}
+.chk input{margin-top:3px;accent-color:var(--orange)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.note{margin:0;font-size:12.5px;line-height:1.5;color:var(--muted)}
+.note b{color:var(--text)}
+.note.err{color:var(--red)}
+.vals{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.val{background:var(--bg-2);border:1px solid var(--border);border-radius:12px;padding:10px 12px}
+.val small{display:block;font:600 11px/1 var(--f-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.val b{display:block;margin-top:6px;font:700 22px/1 var(--f-mono);font-variant-numeric:tabular-nums}
+#spark{width:100%;height:56px;display:block}
+.ledline{display:flex;align-items:center;gap:10px;margin-right:auto;font-weight:700}
+.ledline i{width:14px;height:14px;border-radius:50%;background:#4A2522}
+.ledline.on i{background:var(--red);box-shadow:0 0 12px var(--red)}
+.topics{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.topics li{display:grid;gap:2px;background:var(--bg-2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+.topics code{font:600 12px/1.35 var(--f-mono);color:var(--teal);word-break:break-all}
+.topics span{font-size:12px;color:var(--muted)}
+.log{list-style:none;margin:0;padding:0;max-height:240px;overflow:auto;display:grid;gap:2px;font:500 11.5px/1.45 var(--f-mono)}
+.log li{display:grid;grid-template-columns:auto auto minmax(0,1fr);gap:8px;padding:5px 6px;border-radius:6px}
+.log li:nth-child(odd){background:var(--bg-2)}
+.log .t{color:var(--faint)}
+.log .d{font-weight:700}
+.log .d.in{color:var(--orange)}
+.log .d.out{color:var(--teal)}
+.log .m{min-width:0;overflow-wrap:anywhere}
+.log .m em{font-style:normal;color:var(--muted)}
+.pub{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:6px}
+.pub input{font:500 12px var(--f-mono)}
+
+@media (max-width:900px){
+  .app{height:auto}
+  .main{grid-template-columns:minmax(0,1fr)}
+  .view{height:62vh;height:62dvh}
+  .side{border-left:0;border-top:1px solid var(--border);overflow:visible;padding-left:max(14px,env(safe-area-inset-left,0px))}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="bar">
+    <a class="back" href="index.html">← Aula</a>
+    <div class="ttl"><span class="kicker">Laboratório · MQTT + WebXR</span><h1>Bancada <em>XR</em></h1></div>
+    <div class="pills"><span class="pill" id="connPill">desconectado</span><span class="pill" id="devPill">ESP32: sem notícia</span></div>
+    <div class="xr"><button class="btn teal" id="btnVR" type="button" hidden>Entrar em VR</button><button class="btn teal" id="btnAR" type="button" hidden>Entrar em AR</button></div>
+  </header>
+
+  <main class="main">
+    <div class="view">
+      <canvas id="c" aria-label="Cena 3D da bancada com o ESP32"></canvas>
+      <p class="statusMsg" id="statusMsg"></p>
+      <p class="hint">Arraste para girar · role para aproximar · clique no LED, no botão BOOT ou no botão do painel</p>
+    </div>
+
+    <aside class="side">
+      <section class="card" aria-labelledby="h-con">
+        <h2 id="h-con">Conexão</h2>
+        <div class="seg2" role="radiogroup" aria-label="Modo">
+          <label><input type="radio" name="modo" value="sim" checked>Simulação</label>
+          <label><input type="radio" name="modo" value="real">Broker real</label>
+        </div>
+        <label class="fld" id="brokerFld">Broker (WebSocket)
+          <select id="brokerSel"></select>
+          <input id="brokerUrl" spellcheck="false" autocomplete="off">
+        </label>
+        <label class="fld">Tópico base (o mesmo do firmware)
+          <input id="baseIn" spellcheck="false" autocomplete="off" value="escola/lab1/esp32">
+        </label>
+        <label class="chk"><input type="checkbox" id="virtualChk" checked><span>ESP32 virtual: gera dados de exemplo sem placa. Desligue quando a placa de verdade estiver conectada.</span></label>
+        <div class="row"><button class="btn solid" id="connectBtn" type="button">Conectar</button><button class="btn" id="disconnectBtn" type="button" disabled>Desconectar</button></div>
+        <p class="note" id="connNote">Na simulação, um broker de mentira roda dentro da página. Nada sai do seu computador.</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-esp">
+        <h2 id="h-esp">Leituras do ESP32</h2>
+        <div class="vals">
+          <div class="val"><small>Temperatura</small><b id="vTemp">–</b></div>
+          <div class="val"><small>Umidade</small><b id="vUmid">–</b></div>
+          <div class="val"><small>Luz</small><b id="vLuz">–</b></div>
+          <div class="val"><small>Potenciômetro</small><b id="vPot">–</b></div>
+        </div>
+        <canvas id="spark" aria-label="Gráfico da temperatura recente"></canvas>
+        <div class="row"><span class="ledline" id="ledHtml"><i></i>LED desligado</span><button class="btn solid" id="ledBtn" type="button">Ligar LED</button></div>
+        <p class="note" id="seen">Ainda sem dados.</p>
+      </section>
+
+      <section class="card" aria-labelledby="h-top">
+        <h2 id="h-top">Tópicos</h2>
+        <ul class="topics" id="topics"></ul>
+      </section>
+
+      <section class="card" aria-labelledby="h-log">
+        <h2 id="h-log">Monitor MQTT</h2>
+        <ol class="log" id="log" aria-live="off"></ol>
+        <form class="pub" id="pubForm">
+          <input id="pubTopic" aria-label="Tópico" spellcheck="false">
+          <input id="pubPayload" aria-label="Mensagem" value="ON" spellcheck="false">
+          <button class="btn" type="submit">Publicar</button>
+        </form>
+        <p class="note">Publique à mão para testar. Ex.: <b>led/set</b> com ON, OFF ou TOGGLE.</p>
+      </section>
+    </aside>
+  </main>
+</div>
+
+<script>
+'use strict';
+/* =====================================================================
+   Bancada XR — recebe a telemetria do ESP32 por MQTT (sobre WebSocket)
+   e mostra tudo numa cena Babylon.js que também abre em VR/AR (WebXR).
+
+   Tópicos (troque o tópico base no painel; tem que ser igual ao firmware):
+     <base>/telemetria   ESP32 → todos   {"temp":24.6,"umid":55,"luz":73,"pot":40,"rssi":-61,"uptime":120}
+     <base>/led/set      todos → ESP32   ON | OFF | TOGGLE
+     <base>/led/estado   ESP32 → todos   ON | OFF            (retida)
+     <base>/botao        ESP32 → todos   PRESSIONADO
+     <base>/status       ESP32 → todos   online | offline    (retida; offline vem do testamento/LWT)
+   ===================================================================== */
+const $ = q => document.querySelector(q);
+const statusMsg = $('#statusMsg');
+const showStatus = (t) => { statusMsg.innerHTML = t ? `<span>${t}</span>` : ''; };
+window.addEventListener('error', e => showStatus('Erro: ' + (e.message || e.error)));
+window.addEventListener('unhandledrejection', e => showStatus('Erro: ' + (e.reason?.message || e.reason)));
+
+const BROKERS = [
+  { name: 'HiveMQ (público)', url: 'wss://broker.hivemq.com:8884/mqtt' },
+  { name: 'EMQX (público)', url: 'wss://broker.emqx.io:8084/mqtt' },
+  { name: 'Mosquitto (público)', url: 'wss://test.mosquitto.org:8081/mqtt' },
+  { name: 'Mosquitto na minha rede', url: 'ws://localhost:9001' },
+];
+const store = { get(k) { try { return localStorage.getItem(k); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch { } } };
+const fmt = (n, d = 1) => Number.isFinite(n) ? n.toFixed(d).replace('.', ',') : '–';
+const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : NaN; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rid = () => Math.random().toString(16).slice(2, 8);
+
+/* =====================================================================
+   1. MQTT: broker de mentira (simulação) e clientes
+   ===================================================================== */
+function topicMatches(filter, topic) {
+  const f = filter.split('/'), t = topic.split('/');
+  for (let i = 0; i < f.length; i++) {
+    if (f[i] === '#') return true;
+    if (i >= t.length) return false;
+    if (f[i] !== '+' && f[i] !== t[i]) return false;
+  }
+  return f.length === t.length;
+}
+class LocalBroker { // faz o papel do broker na simulação: entrega para quem assinou, guarda as retidas
+  constructor() { this.subs = []; this.retained = new Map(); }
+  subscribe(filter, cb) {
+    const s = { filter, cb }; this.subs.push(s);
+    for (const [t, p] of this.retained) if (topicMatches(filter, t)) setTimeout(() => cb(t, p), 40);
+    return () => { this.subs = this.subs.filter(x => x !== s); };
+  }
+  publish(topic, payload, o = {}) {
+    if (o.retain) this.retained.set(topic, payload);
+    const lag = 60 + Math.random() * 90; // um pouco de "rede"
+    for (const s of [...this.subs]) if (topicMatches(s.filter, topic)) setTimeout(() => s.cb(topic, payload), lag);
+  }
+}
+let localBroker = new LocalBroker();
+
+function simClient(will) {
+  const handlers = [], unsubs = [];
+  return {
+    subscribe(filter) { unsubs.push(localBroker.subscribe(filter, (t, p) => handlers.forEach(h => h(t, p)))); },
+    onMessage(h) { handlers.push(h); },
+    publish(t, p, o = {}) { localBroker.publish(t, String(p), o); },
+    end(graceful) { unsubs.forEach(u => u()); if (will && !graceful) localBroker.publish(will.topic, will.payload, { retain: will.retain }); },
+  };
+}
+function realClient(url, clientId, will, onState) {
+  const filters = [], handlers = [];
+  const c = mqtt.connect(url, {
+    clientId, clean: true, keepalive: 30, reconnectPeriod: 4000, connectTimeout: 10000, protocolVersion: 4,
+    will: will ? { topic: will.topic, payload: will.payload, qos: 1, retain: !!will.retain } : undefined,
+  });
+  c.on('connect', () => { if (filters.length) c.subscribe(filters, { qos: 0 }); onState?.('connected'); });
+  c.on('reconnect', () => onState?.('reconnecting'));
+  c.on('offline', () => onState?.('offline'));
+  c.on('error', e => onState?.('error', e));
+  c.on('message', (t, buf) => { const p = buf.toString(); handlers.forEach(h => h(t, p)); });
+  return {
+    subscribe(filter) { filters.push(filter); if (c.connected) c.subscribe(filter, { qos: 0 }); },
+    onMessage(h) { handlers.push(h); },
+    publish(t, p, o = {}) { c.publish(t, String(p), { qos: o.qos || 0, retain: !!o.retain }); },
+    end(graceful = true) {
+      if (graceful) { c.end(); return; }
+      // queda de verdade: fecha o socket sem DISCONNECT, para o broker publicar o testamento (LWT)
+      c.options.reconnectPeriod = 0;
+      try { c.stream?.destroy?.(); } catch { }
+      setTimeout(() => c.end(true), 200);
+    },
+  };
+}
+
+/* ---------- ESP32 virtual: mesmo comportamento do firmware ---------- */
+class VirtualESP32 {
+  constructor(client, base) {
+    Object.assign(this, { c: client, base, led: false, temp: 24.6, umid: 55, pot: 40, potAlvo: 40, lanterna: 0, t0: Date.now(), timer: 0 });
+  }
+  begin() {
+    this.c.onMessage((topic, msg) => { if (topic === this.base + '/led/set') this.command(msg); });
+    this.c.subscribe(this.base + '/led/set');
+    this.c.publish(this.base + '/status', 'online', { retain: true });
+    this.c.publish(this.base + '/led/estado', 'OFF', { retain: true });
+    this.timer = setInterval(() => this.tick(), 2000);
+    setTimeout(() => this.tick(), 400);
+  }
+  command(msg) {
+    const m = msg.trim().toUpperCase();
+    const on = ['ON', '1', 'LIGAR'].includes(m) ? true : ['OFF', '0', 'DESLIGAR'].includes(m) ? false : m === 'TOGGLE' ? !this.led : null;
+    if (on === null) return;
+    this.led = on;
+    this.c.publish(this.base + '/led/estado', on ? 'ON' : 'OFF', { retain: true });
+  }
+  tick() {
+    const s = (Date.now() - this.t0) / 1000;
+    this.temp = clamp(this.temp + (Math.random() - .5) * .25 + (this.led ? .03 : -.01), 18, 34);
+    this.umid = clamp(this.umid + (Math.random() - .5) * 1.2, 30, 85);
+    if (Math.random() < .08) this.potAlvo = Math.round(Math.random() * 100);
+    this.pot += (this.potAlvo - this.pot) * .5;
+    if (this.lanterna > 0) this.lanterna--;
+    const luz = this.lanterna > 0 ? 97 : clamp(58 + 22 * Math.sin(s / 35) + (Math.random() - .5) * 6, 0, 100);
+    const d = { temp: +this.temp.toFixed(1), umid: Math.round(this.umid), luz: Math.round(luz), pot: Math.round(this.pot), rssi: -55 - Math.round(Math.random() * 12), uptime: Math.round(s) };
+    this.c.publish(this.base + '/telemetria', JSON.stringify(d));
+  }
+  pressBoot() { this.c.publish(this.base + '/botao', 'PRESSIONADO'); }
+  turnKnob() { this.potAlvo = (Math.round(this.pot / 25) * 25 + 25) % 125; this.pot = this.potAlvo; this.tick(); }
+  flashlight() { this.lanterna = 4; this.tick(); }
+  end(graceful) {
+    clearInterval(this.timer);
+    if (graceful) this.c.publish(this.base + '/status', 'offline', { retain: true });
+    setTimeout(() => this.c.end(graceful), graceful ? 300 : 0);
+  }
+}
+
+/* =====================================================================
+   2. CENA 3D (Babylon.js)
+   ===================================================================== */
+const canvas = $('#c');
+const V3 = (x, y, z) => new BABYLON.Vector3(x, y, z);
+const C3 = hex => BABYLON.Color3.FromHexString(hex);
+let scene, engine, ui3d = {}, xr = null;
+
+function buildScene() {
+  engine = new BABYLON.Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, true);
+  scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0.047, 0.051, 0.067, 1);
+  scene.ambientColor = C3('#202430');
+
+  const cam = new BABYLON.ArcRotateCamera('cam', -Math.PI / 2, 1.18, 2.7, V3(0.05, 1.2, 1.65), scene);
+  cam.attachControl(canvas, true);
+  cam.lowerRadiusLimit = 0.8; cam.upperRadiusLimit = 6; cam.upperBetaLimit = 1.52; cam.minZ = 0.03;
+  cam.wheelDeltaPercentage = 0.01; cam.pinchDeltaPercentage = 0.004; cam.panningSensibility = 2500;
+
+  const hemi = new BABYLON.HemisphericLight('hemi', V3(0, 1, 0), scene);
+  hemi.intensity = 0.6; hemi.groundColor = C3('#15171d');
+  const sun = new BABYLON.DirectionalLight('sun', V3(-0.35, -1, 0.55), scene);
+  sun.position = V3(2, 4, -1); sun.intensity = 0.85;
+  const shadows = new BABYLON.ShadowGenerator(1024, sun);
+  shadows.useBlurExponentialShadowMap = true; shadows.blurKernel = 16; shadows.darkness = 0.35;
+  const glow = new BABYLON.GlowLayer('glow', scene, { blurKernelSize: 48 });
+  glow.intensity = 0.85;
+
+  engine.runRenderLoop(() => scene.render()); // começa cedo: a cena nunca fica em branco
+  new ResizeObserver(() => engine.resize()).observe(canvas);
+
+  const mat = (name, hex, o = {}) => {
+    const m = new BABYLON.StandardMaterial(name, scene);
+    m.diffuseColor = C3(hex); m.specularColor = C3(o.spec || '#1a1a1a');
+    if (o.emissive) m.emissiveColor = C3(o.emissive);
+    if (o.alpha != null) m.alpha = o.alpha;
+    if (o.power) m.specularPower = o.power;
+    return m;
+  };
+  const M = {
+    table: mat('table', '#1E2129'), leg: mat('leg', '#2A2E37'),
+    pcb: mat('pcb', '#101216', { spec: '#2a2a2a' }), module: mat('module', '#1A1D23'),
+    can: mat('can', '#AEB4BA', { spec: '#ffffff', power: 64 }), gold: mat('gold', '#E1B860', { spec: '#ffe9a8', power: 32 }),
+    copper: mat('copper', '#C8834A'), silver: mat('silver', '#B9BFC5', { spec: '#ffffff', power: 64 }),
+    btn: mat('btn', '#C9CDD2'), cap: mat('cap', '#2A2E35'), ledOff: mat('ledOff', '#5A2622'),
+    ledOn: mat('ledOn', '#FF4D3D', { emissive: '#FF3B2B' }),
+    glass: mat('glass', '#DDE6F0', { alpha: 0.22, spec: '#ffffff', power: 128 }),
+    red: mat('red', '#F05050', { emissive: '#7a1414' }), water: mat('water', '#3BA7F0', { alpha: 0.75, emissive: '#0d3550' }),
+    teal: mat('tealm', '#2FE3C2', { emissive: '#14806c' }), purple: mat('purplem', '#A98BFA', { emissive: '#5b3fc0' }),
+    orange: mat('orangem', '#FF8A3D', { emissive: '#a34b12' }), dark: mat('dark', '#16181E'),
+  };
+
+  // chão em grade (vira chão de teletransporte no VR)
+  const ground = BABYLON.MeshBuilder.CreateGround('ground', { width: 30, height: 30 }, scene);
+  if (BABYLON.GridMaterial) {
+    const gm = new BABYLON.GridMaterial('grid', scene);
+    gm.mainColor = C3('#0C0D11'); gm.lineColor = C3('#2FE3C2'); gm.opacity = 0.99;
+    gm.gridRatio = 0.5; gm.majorUnitFrequency = 4; gm.minorUnitVisibility = 0.18;
+    ground.material = gm;
+  } else ground.material = mat('groundm', '#111318');
+  ground.receiveShadows = true;
+
+  // mesa
+  const top = BABYLON.MeshBuilder.CreateBox('mesa', { width: 1.9, height: 0.05, depth: 0.85 }, scene);
+  top.position = V3(0.05, 0.755, 1.3); top.material = M.table; top.receiveShadows = true;
+  for (const [x, z] of [[-0.85, 0.95], [0.95, 0.95], [-0.85, 1.65], [0.95, 1.65]]) {
+    const l = BABYLON.MeshBuilder.CreateCylinder('perna', { height: 0.73, diameter: 0.045 }, scene);
+    l.position = V3(x, 0.365, z); l.material = M.leg;
+  }
+  const edge = BABYLON.MeshBuilder.CreateBox('borda', { width: 1.9, height: 0.006, depth: 0.006 }, scene);
+  edge.position = V3(0.05, 0.783, 0.875); edge.material = M.teal;
+
+  /* ---------- placa ESP32 (escala ampliada para a sala) ---------- */
+  const esp = new BABYLON.TransformNode('esp32', scene);
+  esp.position = V3(-0.5, 0.78, 1.25);
+  const part = (name, w, h, d, x, y, z, m) => { const b = BABYLON.MeshBuilder.CreateBox(name, { width: w, height: h, depth: d }, scene); b.position = V3(x, y, z); b.material = m; b.parent = esp; shadows.addShadowCaster(b); return b; };
+  part('pcb', 0.46, 0.014, 0.22, 0, 0.007, 0, M.pcb).receiveShadows = true;
+  part('modulo', 0.24, 0.008, 0.15, -0.08, 0.018, 0, M.module);
+  const can = part('blindagem', 0.165, 0.014, 0.13, -0.035, 0.029, 0, M.can);
+  { // etiqueta da blindagem
+    const lab = BABYLON.MeshBuilder.CreatePlane('etiqueta', { width: 0.15, height: 0.06 }, scene);
+    lab.parent = can; lab.position = V3(0, 0.0075, 0); lab.rotation.x = Math.PI / 2;
+    const dt = new BABYLON.DynamicTexture('dtCan', { width: 512, height: 200 }, scene, true);
+    const g = dt.getContext(); g.fillStyle = '#AEB4BA'; g.fillRect(0, 0, 512, 200);
+    g.fillStyle = '#262A31'; g.font = 'bold 54px JetBrains Mono, monospace'; g.textAlign = 'center'; g.fillText('ESP32-WROOM', 256, 90);
+    g.font = '600 34px JetBrains Mono, monospace'; g.fillText('Wi-Fi · Bluetooth', 256, 150); dt.update();
+    const lm = new BABYLON.StandardMaterial('mCan', scene); lm.diffuseTexture = dt; lm.specularColor = C3('#333333'); lab.material = lm;
+  }
+  for (let i = 0; i < 6; i++) part('antena' + i, 0.006, 0.003, 0.11, -0.185 + i * 0.011, 0.024, 0, M.copper);
+  const pinBase = BABYLON.MeshBuilder.CreateBox('pino', { width: 0.012, height: 0.01, depth: 0.012 }, scene);
+  pinBase.material = M.gold; pinBase.parent = esp; pinBase.position = V3(-0.2, 0.019, 0.095);
+  for (let i = 0; i < 16; i++) for (const z of [0.095, -0.095]) {
+    if (i === 0 && z > 0) continue;
+    const p = pinBase.createInstance('pino' + i); p.parent = esp; p.position = V3(-0.2 + i * 0.027, 0.019, z);
+  }
+  part('usb', 0.05, 0.022, 0.06, 0.225, 0.02, 0, M.silver);
+  part('ic', 0.04, 0.008, 0.04, 0.13, 0.018, -0.02, M.module);
+  part('en', 0.02, 0.01, 0.02, 0.06, 0.019, 0.055, M.btn);
+  part('bootBase', 0.02, 0.01, 0.02, 0.06, 0.019, -0.055, M.btn);
+  const boot = BABYLON.MeshBuilder.CreateCylinder('boot', { height: 0.012, diameter: 0.014 }, scene);
+  boot.parent = esp; boot.position = V3(0.06, 0.028, -0.055); boot.material = M.cap; boot.metadata = { action: 'boot' };
+  const ledMesh = BABYLON.MeshBuilder.CreateSphere('led', { diameter: 0.028, segments: 16 }, scene);
+  ledMesh.parent = esp; ledMesh.position = V3(0.13, 0.026, 0.06); ledMesh.scaling.y = 0.7; ledMesh.material = M.ledOff; ledMesh.metadata = { action: 'led' };
+  const ledLight = new BABYLON.PointLight('ledLuz', V3(0.13, 0.08, 0.06), scene);
+  ledLight.parent = esp; ledLight.diffuse = C3('#FF3B2B'); ledLight.specular = C3('#FF3B2B'); ledLight.intensity = 0; ledLight.range = 0.6;
+  const ring = BABYLON.MeshBuilder.CreateTorus('statusRing', { diameter: 0.09, thickness: 0.008, tessellation: 48 }, scene);
+  ring.parent = esp; ring.position = V3(-0.16, 0.16, 0); ring.material = mat('ringm', '#666D7B', { emissive: '#333844' });
+  const ringPole = BABYLON.MeshBuilder.CreateCylinder('poste', { height: 0.11, diameter: 0.004 }, scene);
+  ringPole.parent = esp; ringPole.position = V3(-0.16, 0.06, 0); ringPole.material = M.leg;
+
+  /* ---------- sensores ---------- */
+  const tz = 1.28;
+  // termômetro
+  const tx = 0.02;
+  const tubo = BABYLON.MeshBuilder.CreateCylinder('tubo', { height: 0.34, diameter: 0.05 }, scene);
+  tubo.position = V3(tx, 0.78 + 0.06 + 0.17, tz); tubo.material = M.glass;
+  const bulbo = BABYLON.MeshBuilder.CreateSphere('bulbo', { diameter: 0.075 }, scene);
+  bulbo.position = V3(tx, 0.78 + 0.04, tz); bulbo.material = M.red; shadows.addShadowCaster(bulbo);
+  const liquido = BABYLON.MeshBuilder.CreateCylinder('liquido', { height: 1, diameter: 0.026 }, scene);
+  liquido.material = M.red; liquido.position = V3(tx, 0.84, tz);
+  // umidade: tanque com água
+  const ux = 0.26;
+  const tanque = BABYLON.MeshBuilder.CreateBox('tanque', { width: 0.11, height: 0.26, depth: 0.11 }, scene);
+  tanque.position = V3(ux, 0.78 + 0.13, tz); tanque.material = M.glass;
+  const agua = BABYLON.MeshBuilder.CreateBox('agua', { width: 0.1, height: 1, depth: 0.1 }, scene);
+  agua.material = M.water; agua.position = V3(ux, 0.79, tz);
+  // luz: LDR + "sol" que brilha
+  const lx = 0.5;
+  const ldr = BABYLON.MeshBuilder.CreateCylinder('ldr', { height: 0.02, diameter: 0.06 }, scene);
+  ldr.position = V3(lx, 0.79, tz); ldr.material = mat('ldrm', '#C8834A'); shadows.addShadowCaster(ldr);
+  const solMat = mat('solm', '#FFD27A', { emissive: '#FFB040' });
+  const sol = BABYLON.MeshBuilder.CreateSphere('sol', { diameter: 0.09, segments: 20 }, scene);
+  sol.position = V3(lx, 1.0, tz); sol.material = solMat; sol.metadata = { action: 'luz' };
+  const solHaste = BABYLON.MeshBuilder.CreateCylinder('haste', { height: 0.2, diameter: 0.004 }, scene);
+  solHaste.position = V3(lx, 0.89, tz); solHaste.material = M.leg;
+  // potenciômetro
+  const px = 0.75;
+  const potBase = BABYLON.MeshBuilder.CreateBox('potBase', { width: 0.1, height: 0.03, depth: 0.1 }, scene);
+  potBase.position = V3(px, 0.795, tz); potBase.material = M.dark; shadows.addShadowCaster(potBase);
+  const knob = BABYLON.MeshBuilder.CreateCylinder('knob', { height: 0.05, diameter: 0.075, tessellation: 32 }, scene);
+  knob.position = V3(px, 0.835, tz); knob.material = mat('knobm', '#2A2E37'); knob.metadata = { action: 'pot' };
+  const notch = BABYLON.MeshBuilder.CreateBox('notch', { width: 0.008, height: 0.01, depth: 0.032 }, scene);
+  notch.parent = knob; notch.position = V3(0, 0.028, 0.018); notch.material = M.orange; notch.metadata = { action: 'pot' };
+  shadows.addShadowCaster(knob);
+
+  /* ---------- rótulos flutuantes (GUI no mundo 3D: aparece também dentro do óculos) ---------- */
+  const GUI = BABYLON.GUI;
+  const FONT = '"Plus Jakarta Sans", "Segoe UI", sans-serif', MONO = '"JetBrains Mono", Consolas, monospace';
+  function label(name, x, y, z, title) {
+    const plane = BABYLON.MeshBuilder.CreatePlane(name, { width: 0.3, height: 0.125 }, scene);
+    plane.position = V3(x, y, z); plane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y; plane.isPickable = false;
+    const adt = GUI.AdvancedDynamicTexture.CreateForMesh(plane, 600, 250, false);
+    const r = new GUI.Rectangle(); r.background = '#16181E'; r.color = '#2A2E37'; r.thickness = 5; r.cornerRadius = 40; r.alpha = 0.95; adt.addControl(r);
+    const t = new GUI.TextBlock(); t.text = title; t.color = '#9BA1AD'; t.fontSize = 46; t.fontFamily = FONT; t.top = '-48px'; r.addControl(t);
+    const v = new GUI.TextBlock(); v.text = '–'; v.color = '#F3F4F6'; v.fontSize = 92; v.fontWeight = '800'; v.fontFamily = FONT; v.top = '34px'; r.addControl(v);
+    return v;
+  }
+  const lab = {
+    temp: label('lTemp', tx, 1.3, tz, 'Temperatura'),
+    umid: label('lUmid', ux, 1.2, tz, 'Umidade'),
+    luz: label('lLuz', lx, 1.2, tz, 'Luz'),
+    pot: label('lPot', px, 1.06, tz, 'Potenciômetro'),
+  };
+
+  /* ---------- broker flutuando ---------- */
+  const brokerPos = V3(0.85, 1.9, 2.2);
+  const core = BABYLON.MeshBuilder.CreateIcoSphere('broker', { radius: 0.09, subdivisions: 2 }, scene);
+  core.position = brokerPos.clone(); core.material = M.purple;
+  const orb1 = BABYLON.MeshBuilder.CreateTorus('orb1', { diameter: 0.28, thickness: 0.006, tessellation: 64 }, scene);
+  orb1.position = brokerPos.clone(); orb1.material = M.purple;
+  const orb2 = orb1.clone('orb2'); orb2.rotation.x = Math.PI / 2.6;
+  const brokerLabelPlane = BABYLON.MeshBuilder.CreatePlane('lBroker', { width: 0.42, height: 0.13 }, scene);
+  brokerLabelPlane.position = brokerPos.add(V3(0, 0.25, 0)); brokerLabelPlane.billboardMode = BABYLON.Mesh.BILLBOARDMODE_Y; brokerLabelPlane.isPickable = false;
+  const bAdt = GUI.AdvancedDynamicTexture.CreateForMesh(brokerLabelPlane, 840, 260, false);
+  const bT = new GUI.TextBlock(); bT.text = 'BROKER MQTT'; bT.color = '#A98BFA'; bT.fontSize = 64; bT.fontWeight = '800'; bT.fontFamily = FONT; bT.top = '-40px'; bAdt.addControl(bT);
+  const bH = new GUI.TextBlock(); bH.text = 'simulação'; bH.color = '#9BA1AD'; bH.fontSize = 44; bH.fontFamily = MONO; bH.top = '50px'; bAdt.addControl(bH);
+
+  /* ---------- painel principal (holograma) ---------- */
+  const panelPos = V3(-0.42, 1.62, 2.08);
+  const panel = BABYLON.MeshBuilder.CreatePlane('painel', { width: 1.25, height: 0.78 }, scene);
+  panel.position = panelPos; panel.rotation.y = -0.2;
+  const P = GUI.AdvancedDynamicTexture.CreateForMesh(panel, 1280, 800, true);
+  const bg = new GUI.Rectangle(); bg.background = '#121419'; bg.color = '#2A2E37'; bg.thickness = 5; bg.cornerRadius = 44; bg.alpha = 0.96; P.addControl(bg);
+  const T = (parent, text, o = {}) => {
+    const t = new GUI.TextBlock(); t.text = text; t.color = o.color || '#F3F4F6'; t.fontSize = o.size || 36; t.fontFamily = o.mono ? MONO : FONT; t.fontWeight = o.weight || '600';
+    t.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT; t.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT; t.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    t.left = (o.left || 0) + 'px'; t.top = (o.top || 0) + 'px'; t.width = (o.w || 1000) + 'px'; t.height = (o.h || (o.size || 36) * 1.4) + 'px';
+    if (o.right) { t.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT; t.textHorizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT; t.left = -(o.right) + 'px'; }
+    parent.addControl(t); return t;
+  };
+  T(bg, 'BANCADA XR · ESP32', { left: 60, top: 46, size: 30, color: '#2FE3C2', mono: true, weight: '700' });
+  const pBase = T(bg, 'escola/lab1/esp32', { left: 60, top: 88, size: 44, weight: '800', w: 820 });
+  const pill = new GUI.Rectangle(); pill.width = '280px'; pill.height = '64px'; pill.cornerRadius = 32; pill.thickness = 3; pill.color = '#666D7B'; pill.background = '#16181E';
+  pill.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT; pill.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP; pill.left = '-60px'; pill.top = '56px'; bg.addControl(pill);
+  const pillT = new GUI.TextBlock(); pillT.text = 'SEM NOTÍCIA'; pillT.color = '#9BA1AD'; pillT.fontSize = 28; pillT.fontFamily = MONO; pillT.fontWeight = '700'; pill.addControl(pillT);
+  const cell = (x, y, title) => {
+    const r = new GUI.Rectangle(); r.width = '560px'; r.height = '170px'; r.cornerRadius = 28; r.thickness = 3; r.color = '#2A2E37'; r.background = '#16181E';
+    r.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT; r.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP; r.left = x + 'px'; r.top = y + 'px'; bg.addControl(r);
+    T(r, title, { left: 32, top: 22, size: 30, color: '#9BA1AD' });
+    return T(r, '–', { left: 32, top: 66, size: 70, weight: '800', w: 500, h: 90 });
+  };
+  const pv = { temp: cell(60, 175, 'Temperatura'), umid: cell(660, 175, 'Umidade'), luz: cell(60, 365, 'Luz'), pot: cell(660, 365, 'Potenciômetro') };
+  const ledRow = new GUI.Rectangle(); ledRow.width = '1160px'; ledRow.height = '120px'; ledRow.cornerRadius = 28; ledRow.thickness = 3; ledRow.color = '#2A2E37'; ledRow.background = '#16181E';
+  ledRow.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT; ledRow.verticalAlignment = GUI.Control.VERTICAL_ALIGNMENT_TOP; ledRow.left = '60px'; ledRow.top = '560px'; bg.addControl(ledRow);
+  const ledDot = new GUI.Ellipse(); ledDot.width = '52px'; ledDot.height = '52px'; ledDot.thickness = 0; ledDot.background = '#4A2522';
+  ledDot.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_LEFT; ledDot.left = '34px'; ledRow.addControl(ledDot);
+  const ledTxt = T(ledRow, 'LED desligado', { left: 110, top: 30, size: 44, weight: '800', w: 560 });
+  const ledBtn3d = GUI.Button.CreateSimpleButton('ledBtn3d', 'LIGAR LED');
+  ledBtn3d.width = '380px'; ledBtn3d.height = '86px'; ledBtn3d.cornerRadius = 43; ledBtn3d.thickness = 0; ledBtn3d.background = '#FF8A3D'; ledBtn3d.color = '#0C0D11';
+  ledBtn3d.fontSize = 38; ledBtn3d.fontWeight = '800'; ledBtn3d.fontFamily = FONT; ledBtn3d.horizontalAlignment = GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT; ledBtn3d.left = '-18px';
+  ledBtn3d.onPointerUpObservable.add(() => toggleLed());
+  ledRow.addControl(ledBtn3d);
+  const pFoot = T(bg, 'aguardando a primeira mensagem…', { left: 60, top: 706, size: 28, mono: true, color: '#9BA1AD', w: 860 });
+  const pBoot = T(bg, '', { right: 60, top: 700, size: 34, weight: '800', color: '#FF8A3D', w: 340 });
+
+  /* ---------- histórico da temperatura em barras 3D ---------- */
+  const N = 30, bars = [];
+  const barMat = mat('barm', '#FF8A3D', { emissive: '#7a3410' });
+  const chartBase = BABYLON.MeshBuilder.CreateBox('chartBase', { width: 0.9, height: 0.008, depth: 0.08 }, scene);
+  chartBase.position = V3(0.8, 1.12, 2.26); chartBase.material = M.dark;
+  for (let i = 0; i < N; i++) {
+    const b = BABYLON.MeshBuilder.CreateBox('bar' + i, { width: 0.02, height: 1, depth: 0.03 }, scene);
+    b.position = V3(0.37 + i * 0.0295, 1.124, 2.26); b.scaling.y = 0.001; b.material = barMat; bars.push(b);
+  }
+  const chartLabel = BABYLON.MeshBuilder.CreatePlane('lChart', { width: 0.6, height: 0.07 }, scene);
+  chartLabel.position = V3(0.8, 1.07, 2.25); chartLabel.isPickable = false;
+  const cAdt = GUI.AdvancedDynamicTexture.CreateForMesh(chartLabel, 900, 105, false);
+  const cT = new GUI.TextBlock(); cT.text = 'temperatura · últimos 60 s'; cT.color = '#9BA1AD'; cT.fontSize = 46; cT.fontFamily = MONO; cAdt.addControl(cT);
+
+  /* ---------- rotas de rede (linhas) e pacotes voando ---------- */
+  const espPt = V3(-0.69, 0.86, 1.25), ledPt = V3(-0.37, 0.82, 1.31);
+  const panelPt = panelPos.add(V3(0.02, 0, -0.06));
+  const arc = (a, b, lift = 0.25) => BABYLON.Curve3.CreateQuadraticBezier(a, BABYLON.Vector3.Center(a, b).add(V3(0, lift, 0)), b, 40).getPoints();
+  const routeUp1 = arc(espPt, brokerPos), routeUp2 = arc(brokerPos, panelPt, 0.18);
+  const routeDn2 = arc(brokerPos, ledPt);
+  for (const [pts, col] of [[routeUp1, '#FF8A3D'], [routeUp2, '#FF8A3D']]) {
+    const l = BABYLON.MeshBuilder.CreateLines('rota', { points: pts }, scene); l.color = C3(col); l.alpha = 0.22; l.isPickable = false;
+  }
+  function fly(points, color, text) {
+    return new Promise(res => {
+      const s = BABYLON.MeshBuilder.CreateSphere('pacote', { diameter: 0.045, segments: 12 }, scene);
+      s.isPickable = false;
+      const m = new BABYLON.StandardMaterial('pm', scene); m.emissiveColor = C3(color); m.diffuseColor = C3(color); s.material = m;
+      let tag = null;
+      if (text) {
+        tag = BABYLON.MeshBuilder.CreatePlane('ptag', { width: 0.3, height: 0.06 }, scene);
+        tag.parent = s; tag.position.y = 0.07; tag.billboardMode = BABYLON.Mesh.BILLBOARDMODE_ALL; tag.isPickable = false;
+        const dt = new BABYLON.DynamicTexture('ptx', { width: 640, height: 128 }, scene, true); dt.hasAlpha = true;
+        const g = dt.getContext(); g.clearRect(0, 0, 640, 128);
+        g.fillStyle = 'rgba(22,24,30,.92)'; g.beginPath();
+        if (g.roundRect) g.roundRect(4, 14, 632, 100, 50); else g.rect(4, 14, 632, 100);
+        g.fill();
+        g.strokeStyle = color; g.lineWidth = 6; g.stroke();
+        g.fillStyle = '#F3F4F6'; g.font = '600 46px JetBrains Mono, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 320, 66); dt.update();
+        const tm = new BABYLON.StandardMaterial('ptm', scene); tm.diffuseTexture = dt; tm.emissiveColor = BABYLON.Color3.White(); tm.disableLighting = true; tm.useAlphaFromDiffuseTexture = true; tm.backFaceCulling = false;
+        tag.material = tm;
+      }
+      let len = 0; const cum = [0];
+      for (let i = 1; i < points.length; i++) { len += BABYLON.Vector3.Distance(points[i], points[i - 1]); cum.push(len); }
+      const dur = Math.max(700, len / 1.5 * 1000), t0 = performance.now();
+      let done = false;
+      const finish = () => { // termina pelo quadro ou pelo relógio (aba em segundo plano não desenha quadros)
+        if (done) return; done = true; clearTimeout(timer);
+        scene.onBeforeRenderObservable.remove(obs);
+        tag?.material?.diffuseTexture?.dispose(); tag?.material?.dispose(); m.dispose(); s.dispose(false, true);
+        res();
+      };
+      const timer = setTimeout(finish, dur + 120);
+      const obs = scene.onBeforeRenderObservable.add(() => {
+        const d = Math.min(1, (performance.now() - t0) / dur) * len;
+        let i = 1; while (i < cum.length - 1 && cum[i] < d) i++;
+        const f = (d - cum[i - 1]) / Math.max(1e-6, cum[i] - cum[i - 1]);
+        s.position = BABYLON.Vector3.Lerp(points[i - 1], points[i], clamp(f, 0, 1));
+        if (d >= len) finish();
+      });
+    });
+  }
+
+  /* ---------- animações suaves (alvos que as leituras mudam) ---------- */
+  const tgt = { temp: 20, umid: 50, luz: 50, pot: 0, led: 0 };
+  const cur = { ...tgt };
+  scene.onBeforeRenderObservable.add(() => {
+    const k = Math.min(1, engine.getDeltaTime() / 300);
+    for (const key in tgt) cur[key] += (tgt[key] - cur[key]) * k;
+    const h = clamp((cur.temp - 0) / 50, 0.02, 1) * 0.32;
+    liquido.scaling.y = h; liquido.position.y = 0.84 + h / 2;
+    const w = clamp(cur.umid / 100, 0.02, 1) * 0.24;
+    agua.scaling.y = w; agua.position.y = 0.79 + w / 2;
+    solMat.emissiveColor = C3('#FFB040').scale(0.15 + cur.luz / 100 * 1.1);
+    sol.scaling.setAll(0.7 + cur.luz / 100 * 0.6);
+    knob.rotation.y = (-135 + cur.pot / 100 * 270) * Math.PI / 180;
+    ledLight.intensity = cur.led * 1.2;
+    core.rotation.y += 0.004; orb1.rotation.y += 0.01; orb2.rotation.z += 0.008;
+  });
+
+  ui3d = { esp, ground, ledMesh, ledMat: { on: M.ledOn, off: M.ledOff }, boot, ring, ringMats: { on: mat('ron', '#4ADE80', { emissive: '#1f9a4c' }), off: mat('roff', '#F87171', { emissive: '#a02a2a' }), none: ring.material },
+    lab, pv, pBase, pill, pillT, ledDot, ledTxt, ledBtn3d, pFoot, pBoot, bars, bH, tgt, fly, routeUp1, routeUp2, routeDn1: [...routeUp2].reverse(), routeDn2, cam, P };
+  document.fonts?.ready.then(() => { P.markAsDirty(); });
+
+  // clique/toque/gatilho do controle em objetos 3D
+  scene.onPointerObservable.add(pi => {
+    if (pi.type !== BABYLON.PointerEventTypes.POINTERTAP) return;
+    const a = pi.pickInfo?.pickedMesh?.metadata?.action;
+    if (a === 'led') toggleLed();
+    if (a === 'boot') { if (vdev) vdev.pressBoot(); else labNote('Aperte o botão BOOT da placa de verdade: a mensagem chega aqui.'); }
+    if (a === 'pot') { if (vdev) vdev.turnKnob(); else labNote('Gire o potenciômetro de verdade para ver o botão girar aqui.'); }
+    if (a === 'luz') { if (vdev) vdev.flashlight(); else labNote('Aponte uma lanterna para o LDR da placa de verdade.'); }
+  });
+}
+
+/* =====================================================================
+   3. WebXR (VR nos óculos, AR no celular) — isolado: se falhar, a cena 3D continua
+   ===================================================================== */
+async function setupXR() {
+  if (!navigator.xr) { if (!window.isSecureContext) labNote('VR/AR precisa de HTTPS. A cena 3D funciona normalmente aqui.'); return; }
+  try {
+    xr = await scene.createDefaultXRExperienceAsync({ floorMeshes: [ui3d.ground], disableDefaultUI: true, optionalFeatures: true });
+    if (!xr.baseExperience) throw new Error('WebXR não iniciou');
+    const [vr, ar] = await Promise.all(['immersive-vr', 'immersive-ar'].map(m => BABYLON.WebXRSessionManager.IsSessionSupportedAsync(m).catch(() => false)));
+    const btnVR = $('#btnVR'), btnAR = $('#btnAR');
+    btnVR.hidden = !vr; btnAR.hidden = !ar;
+    let mode = null;
+    xr.baseExperience.onInitialXRPoseSetObservable?.add(cam => { cam.position.x = 0.05; cam.position.z = 0.25; }); // começa de pé, de frente para a mesa
+    const enter = async m => {
+      if (xr.baseExperience.state === BABYLON.WebXRState.IN_XR) { await xr.baseExperience.exitXRAsync(); return; }
+      mode = m;
+      try { await xr.baseExperience.enterXRAsync(m, 'local-floor', xr.renderTarget); }
+      catch (e) { showStatus('Não foi possível entrar em ' + (m === 'immersive-ar' ? 'AR' : 'VR') + ': ' + (e.message || e)); }
+    };
+    btnVR.onclick = () => enter('immersive-vr');
+    btnAR.onclick = () => enter('immersive-ar');
+    xr.baseExperience.onStateChangedObservable.add(st => {
+      const inXR = st === BABYLON.WebXRState.IN_XR, ar = inXR && mode === 'immersive-ar';
+      ui3d.ground.isVisible = !ar;
+      scene.clearColor.a = ar ? 0 : 1;
+      btnVR.textContent = inXR && mode === 'immersive-vr' ? 'Sair do VR' : 'Entrar em VR';
+      btnAR.textContent = ar ? 'Sair do AR' : 'Entrar em AR';
+    });
+    if (!vr && !ar) labNote('Este navegador não oferece VR/AR. Para imersão, abra esta página no navegador do óculos (Meta Quest) ou no Chrome do Android.');
+  } catch (e) {
+    showStatus('VR/AR indisponível aqui (' + (e.message || e) + '). A cena 3D funciona normalmente.');
+  }
+}
+
+/* =====================================================================
+   4. CONEXÃO, MENSAGENS E INTERFACE
+   ===================================================================== */
+let page = null, vdev = null, base = 'escola/lab1/esp32', modo = 'sim', connected = false;
+const st = { led: false, temp: NaN, umid: NaN, luz: NaN, pot: NaN, rssi: NaN, last: 0, hist: [] };
+let lastCmd = { payload: '', at: 0 }, cmdArriveAt = 0;
+
+function labNote(t) { showStatus(t); clearTimeout(labNote.h); labNote.h = setTimeout(() => showStatus(''), 4500); }
+function setPill(el, cls, text) { el.className = 'pill ' + cls; el.textContent = text; }
+function setConn(state, err) {
+  const p = $('#connPill');
+  connected = state === 'connected' || state === 'sim';
+  if (state === 'sim') setPill(p, 'sim', 'simulação');
+  else if (state === 'connected') { setPill(p, 'ok', 'conectado'); $('#connNote').className = 'note'; $('#connNote').innerHTML = `Conectado a <b>${$('#brokerUrl').value}</b>. Assinando <b>${base}/#</b>.`; }
+  else if (state === 'connecting' || state === 'reconnecting') setPill(p, 'warn', state === 'connecting' ? 'conectando…' : 'reconectando…');
+  else if (state === 'error') { setPill(p, 'bad', 'erro'); $('#connNote').className = 'note err'; $('#connNote').textContent = 'Erro na conexão: ' + (err?.message || err || 'desconhecido'); }
+  else setPill(p, '', 'desconectado');
+}
+function setDevice(s) {
+  const p = $('#devPill');
+  const on = s === 'online', off = s === 'offline';
+  setPill(p, on ? 'ok' : off ? 'bad' : '', 'ESP32: ' + (on ? 'online' : off ? 'offline' : 'sem notícia'));
+  if (!ui3d.ring) return;
+  ui3d.ring.material = on ? ui3d.ringMats.on : off ? ui3d.ringMats.off : ui3d.ringMats.none;
+  ui3d.pillT.text = on ? 'ONLINE' : off ? 'OFFLINE' : 'SEM NOTÍCIA';
+  ui3d.pillT.color = on ? '#4ADE80' : off ? '#F87171' : '#9BA1AD';
+  ui3d.pill.color = on ? '#4ADE80' : off ? '#F87171' : '#666D7B';
+}
+function topics() {
+  return [
+    ['telemetria', 'ESP32 publica as leituras (JSON) a cada 2 s'],
+    ['led/set', 'comando para o LED: ON, OFF ou TOGGLE'],
+    ['led/estado', 'ESP32 confirma o estado do LED (retida)'],
+    ['botao', 'ESP32 avisa quando o BOOT é apertado'],
+    ['status', 'online, ou offline pelo testamento (retida)'],
+  ];
+}
+function renderTopics() {
+  $('#topics').innerHTML = topics().map(([t, d]) => `<li><code>${base}/${t}</code><span>${d}</span></li>`).join('');
+  $('#pubTopic').value = base + '/led/set';
+  if (ui3d.pBase) ui3d.pBase.text = base;
+}
+function log(dir, topic, payload) {
+  const li = document.createElement('li');
+  const t = new Date().toLocaleTimeString('pt-BR');
+  const short = topic.startsWith(base + '/') ? '…/' + topic.slice(base.length + 1) : topic;
+  li.innerHTML = `<span class="t">${t}</span><span class="d ${dir === '↓' ? 'in' : 'out'}">${dir}</span><span class="m"></span>`;
+  li.querySelector('.m').innerHTML = `<em></em> `;
+  li.querySelector('.m em').textContent = short;
+  li.querySelector('.m').append(String(payload).slice(0, 200));
+  const ol = $('#log'); ol.prepend(li);
+  while (ol.children.length > 80) ol.lastChild.remove();
+}
+
+const viz = {
+  async up(label, onStart) { // ESP32 → broker → painel
+    const wait = Math.max(0, cmdArriveAt - performance.now());
+    if (wait) await new Promise(r => setTimeout(r, wait));
+    onStart?.();
+    if (!ui3d.fly) return;
+    await ui3d.fly(ui3d.routeUp1, '#FF8A3D', label);
+    await ui3d.fly(ui3d.routeUp2, '#FF8A3D', label);
+  },
+  async down(label) { // painel → broker → ESP32
+    if (!ui3d.fly) return;
+    const p1 = ui3d.routeDn1, p2 = ui3d.routeDn2;
+    const d = (pts) => { let l = 0; for (let i = 1; i < pts.length; i++) l += BABYLON.Vector3.Distance(pts[i], pts[i - 1]); return Math.max(700, l / 1.5 * 1000); };
+    cmdArriveAt = performance.now() + d(p1) + d(p2) + 60;
+    await ui3d.fly(p1, '#2FE3C2', label);
+    await ui3d.fly(p2, '#2FE3C2', label);
+  },
+};
+
+function applyTelemetry(d) {
+  st.temp = num(d.temp); st.umid = num(d.umid); st.luz = num(d.luz); st.pot = num(d.pot); st.rssi = num(d.rssi); st.last = Date.now();
+  if (Number.isFinite(st.temp)) { st.hist.push(st.temp); if (st.hist.length > 30) st.hist.shift(); }
+  const T = ui3d.tgt;
+  if (T) {
+    if (Number.isFinite(st.temp)) T.temp = st.temp;
+    if (Number.isFinite(st.umid)) T.umid = st.umid;
+    if (Number.isFinite(st.luz)) T.luz = st.luz;
+    if (Number.isFinite(st.pot)) T.pot = st.pot;
+    const txt = { temp: fmt(st.temp) + ' °C', umid: fmt(st.umid, 0) + ' %', luz: fmt(st.luz, 0) + ' %', pot: fmt(st.pot, 0) + ' %' };
+    for (const k in txt) { ui3d.lab[k].text = txt[k]; ui3d.pv[k].text = txt[k]; }
+    const hs = st.hist, n = ui3d.bars.length;
+    ui3d.bars.forEach((b, i) => {
+      const v = hs[hs.length - n + i];
+      const h = Number.isFinite(v) ? clamp((v - 15) / 20, 0.03, 1) * 0.3 : 0.001;
+      b.scaling.y = h; b.position.y = 1.124 + h / 2;
+    });
+  }
+  $('#vTemp').textContent = fmt(st.temp) + ' °C'; $('#vUmid').textContent = fmt(st.umid, 0) + ' %';
+  $('#vLuz').textContent = fmt(st.luz, 0) + ' %'; $('#vPot').textContent = fmt(st.pot, 0) + ' %';
+  drawSpark();
+}
+function setBoardLed(on) {
+  st.led = on;
+  if (ui3d.ledMesh) { ui3d.ledMesh.material = on ? ui3d.ledMat.on : ui3d.ledMat.off; ui3d.tgt.led = on ? 1 : 0; }
+}
+function setPanelLed(on) {
+  $('#ledHtml').className = 'ledline' + (on ? ' on' : ''); $('#ledHtml').lastChild.textContent = on ? 'LED ligado' : 'LED desligado';
+  $('#ledBtn').textContent = on ? 'Desligar LED' : 'Ligar LED';
+  if (ui3d.ledTxt) {
+    ui3d.ledTxt.text = on ? 'LED ligado' : 'LED desligado';
+    ui3d.ledDot.background = on ? '#FF4D3D' : '#4A2522';
+    ui3d.ledBtn3d.textBlock.text = on ? 'DESLIGAR LED' : 'LIGAR LED';
+  }
+}
+function pressBoot() {
+  if (ui3d.boot) { ui3d.boot.position.y = 0.022; setTimeout(() => { ui3d.boot.position.y = 0.028; }, 250); ui3d.pBoot.text = 'BOOT apertado!'; clearTimeout(pressBoot.h); pressBoot.h = setTimeout(() => { ui3d.pBoot.text = ''; }, 2500); }
+}
+function onPageMessage(topic, payload) {
+  log('↓', topic, payload);
+  if (!topic.startsWith(base + '/')) return;
+  const sub = topic.slice(base.length + 1);
+  if (ui3d.pFoot) ui3d.pFoot.text = '↓ …/' + sub + '  ' + String(payload).slice(0, 34);
+  switch (sub) {
+    case 'telemetria': {
+      let d; try { d = JSON.parse(payload); } catch { labNote('A telemetria chegou, mas não é um JSON válido: ' + String(payload).slice(0, 60)); return; }
+      viz.up('telemetria').then(() => applyTelemetry(d));
+      break;
+    }
+    case 'led/estado': {
+      const on = /^(on|1|true|ligado)$/i.test(payload.trim());
+      viz.up('led/estado ' + (on ? 'ON' : 'OFF'), () => setBoardLed(on)).then(() => setPanelLed(on));
+      break;
+    }
+    case 'botao': viz.up('botao', pressBoot); break;
+    case 'status': setDevice(payload.trim().toLowerCase()); break;
+    case 'led/set':
+      if (!(lastCmd.payload === payload && Date.now() - lastCmd.at < 4000)) viz.down('led/set ' + payload); // comando de outra pessoa
+      break;
+  }
+}
+function sendLed(on) {
+  if (!page) { labNote('Conecte primeiro (pode ser no modo simulação).'); return; }
+  const p = on ? 'ON' : 'OFF';
+  lastCmd = { payload: p, at: Date.now() };
+  page.publish(base + '/led/set', p); log('↑', base + '/led/set', p);
+  viz.down('led/set ' + p);
+}
+function toggleLed() { sendLed(!st.led); }
+
+function readForm() {
+  modo = document.querySelector('input[name="modo"]:checked').value;
+  base = $('#baseIn').value.trim().replace(/^\/+|\/+$/g, '') || 'escola/lab1/esp32';
+  store.set('lab-modo', modo); store.set('lab-url', $('#brokerUrl').value.trim()); store.set('lab-base', base); store.set('lab-virtual', $('#virtualChk').checked ? '1' : '0');
+}
+function connect() {
+  disconnect();
+  readForm(); renderTopics();
+  const url = $('#brokerUrl').value.trim();
+  if (modo === 'sim') {
+    localBroker = new LocalBroker();
+    page = simClient(null); setConn('sim');
+    ui3d.bH && (ui3d.bH.text = 'simulação · na página');
+    $('#connNote').className = 'note'; $('#connNote').textContent = 'Simulação: um broker de mentira roda dentro da página. Nada sai do seu computador.';
+  } else {
+    if (!window.mqtt) { setConn('error', 'a biblioteca MQTT não carregou (sem internet?). Use o modo simulação.'); return; }
+    if (location.protocol === 'https:' && url.startsWith('ws://')) { setConn('error', 'esta página está em HTTPS, então o broker precisa ser wss:// (o navegador bloqueia ws://).'); return; }
+    page = realClient(url, 'bancada-xr-' + rid(), null, (s, e) => setConn(s, e));
+    setConn('connecting');
+    try { ui3d.bH && (ui3d.bH.text = new URL(url).hostname); } catch { }
+    clearTimeout(connect.h);
+    connect.h = setTimeout(() => { if (!connected && page) { $('#connNote').className = 'note err'; $('#connNote').innerHTML = 'Sem resposta do broker. Confira a URL e a internet. Redes de escola às vezes bloqueiam a porta; tente outro broker da lista.'; } }, 12000);
+  }
+  page.onMessage(onPageMessage);
+  page.subscribe(base + '/#');
+  if ($('#virtualChk').checked) startVirtual(url);
+  $('#connectBtn').textContent = 'Reconectar'; $('#disconnectBtn').disabled = false;
+}
+function startVirtual(url) {
+  const will = { topic: base + '/status', payload: 'offline', retain: true };
+  const cl = modo === 'sim' ? simClient(will) : realClient(url, 'esp32-virtual-' + rid(), will);
+  vdev = new VirtualESP32(cl, base); vdev.begin();
+}
+function stopVirtual(graceful) { if (vdev) { vdev.end(graceful); vdev = null; } }
+function disconnect() {
+  stopVirtual(true);
+  if (page) { try { page.end(); } catch { } page = null; }
+  clearTimeout(connect.h); setConn('closed');
+  $('#connectBtn').textContent = 'Conectar'; $('#disconnectBtn').disabled = true;
+}
+
+function drawSpark() {
+  const c = $('#spark'), dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  if (!w) return;
+  c.width = w * dpr; c.height = h * dpr;
+  const g = c.getContext('2d'); g.scale(dpr, dpr); g.clearRect(0, 0, w, h);
+  const hs = st.hist; if (hs.length < 2) return;
+  const lo = Math.min(...hs) - .3, hi = Math.max(...hs) + .3;
+  const X = i => i / (hs.length - 1) * (w - 8) + 4, Y = v => h - 6 - (v - lo) / (hi - lo) * (h - 12);
+  g.strokeStyle = 'rgba(255,255,255,.06)'; g.lineWidth = 1;
+  for (let k = 1; k < 3; k++) { g.beginPath(); g.moveTo(0, h * k / 3); g.lineTo(w, h * k / 3); g.stroke(); }
+  g.beginPath(); hs.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+  g.lineTo(X(hs.length - 1), h); g.lineTo(X(0), h); g.closePath(); g.fillStyle = 'rgba(255,138,61,.14)'; g.fill();
+  g.beginPath(); hs.forEach((v, i) => i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)));
+  g.strokeStyle = '#FF8A3D'; g.lineWidth = 2; g.stroke();
+  g.beginPath(); g.arc(X(hs.length - 1), Y(hs[hs.length - 1]), 3.5, 0, 7); g.fillStyle = '#FF8A3D'; g.fill();
+  g.fillStyle = '#9BA1AD'; g.font = '600 11px JetBrains Mono, monospace'; g.textAlign = 'right';
+  g.fillText(fmt(hi - .3) + ' °C', w - 4, 12);
+}
+
+/* ---------- formulário ---------- */
+function initForm() {
+  const sel = $('#brokerSel');
+  sel.innerHTML = BROKERS.map((b, i) => `<option value="${i}">${b.name}</option>`).join('') + '<option value="custom">Outro (digite a URL)</option>';
+  const q = new URLSearchParams(location.search);
+  const url = q.get('broker') || store.get('lab-url') || BROKERS[0].url;
+  const idx = BROKERS.findIndex(b => b.url === url);
+  sel.value = idx >= 0 ? String(idx) : 'custom';
+  $('#brokerUrl').value = url;
+  $('#baseIn').value = q.get('base') || store.get('lab-base') || 'escola/lab1/esp32';
+  const m = q.get('modo') || store.get('lab-modo') || 'sim';
+  document.querySelector(`input[name="modo"][value="${m === 'real' ? 'real' : 'sim'}"]`).checked = true;
+  $('#virtualChk').checked = (q.get('virtual') ?? store.get('lab-virtual') ?? '1') !== '0';
+  const syncMode = () => { $('#brokerFld').hidden = document.querySelector('input[name="modo"]:checked').value === 'sim'; };
+  syncMode();
+  document.querySelectorAll('input[name="modo"]').forEach(r => r.addEventListener('change', syncMode));
+  sel.onchange = () => { if (sel.value !== 'custom') $('#brokerUrl').value = BROKERS[+sel.value].url; $('#brokerUrl').focus(); };
+  $('#brokerUrl').oninput = () => { const i = BROKERS.findIndex(b => b.url === $('#brokerUrl').value.trim()); sel.value = i >= 0 ? String(i) : 'custom'; };
+  $('#connectBtn').onclick = connect;
+  $('#disconnectBtn').onclick = disconnect;
+  $('#ledBtn').onclick = toggleLed;
+  $('#virtualChk').onchange = e => {
+    store.set('lab-virtual', e.target.checked ? '1' : '0');
+    if (!page) return;
+    if (e.target.checked) startVirtual($('#brokerUrl').value.trim());
+    else { stopVirtual(false); labNote('ESP32 virtual desligado sem aviso: o broker publica o testamento e o status vira offline.'); }
+  };
+  $('#pubForm').onsubmit = e => {
+    e.preventDefault();
+    if (!page) { labNote('Conecte primeiro.'); return; }
+    const t = $('#pubTopic').value.trim(), p = $('#pubPayload').value;
+    if (!t || /[#+]/.test(t)) { labNote('Para publicar, o tópico não pode ter + nem #.'); return; }
+    if (t === base + '/led/set') { lastCmd = { payload: p, at: Date.now() }; viz.down('led/set ' + p); }
+    page.publish(t, p); log('↑', t, p);
+  };
+  renderTopics();
+  setInterval(() => {
+    $('#seen').innerHTML = st.last ? `Última telemetria há <b>${Math.round((Date.now() - st.last) / 1000)} s</b>${Number.isFinite(st.rssi) ? ` · sinal Wi-Fi ${st.rssi} dBm` : ''}.` : 'Ainda sem dados.';
+  }, 1000);
+}
+
+/* ---------- partida ---------- */
+(async () => {
+  try {
+    initForm();
+    if (!window.BABYLON) { showStatus('O Babylon.js não carregou. Esta página precisa de internet na primeira vez.'); return; }
+    buildScene();
+    renderTopics();
+    connect(); // começa já funcionando (simulação por padrão)
+    await setupXR();
+  } catch (e) {
+    console.error(e);
+    showStatus('Erro: ' + (e.message || e));
+  }
+})();
+window.addEventListener('beforeunload', () => { try { stopVirtual(true); page?.end(); } catch { } });
+</script>
+</body>
+</html>

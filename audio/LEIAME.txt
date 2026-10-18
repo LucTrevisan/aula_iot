@@ -1,0 +1,17 @@
+PASTA DE ÁUDIO DA NARRAÇÃO
+==========================
+
+audio.mp3        a narração original, gravada de uma vez
+01-1.mp3 ...     a mesma narração dividida em 45 trechos (um por trecho do roteiro.txt)
+indice.js        a lista dos trechos; o player usa este arquivo para achar o áudio
+
+O código no nome é o do trecho: 02-3 = capítulo 2, trecho 3.
+No index.html, o narrador "minha voz gravada" toca estes arquivos, e cada trecho do vídeo
+dura exatamente o tempo da sua fala.
+
+Regravou a aula inteira? Salve por cima do audio.mp3 e rode, na pasta do projeto:
+  python ferramentas/dividir-audio.py
+
+Quer regravar só um trecho? Use o botão "Gravar minha voz" do index.html escolhendo esta pasta,
+ou grave fora e salve com o mesmo nome (ex.: 05-2.mp3). Se mudar a extensão, rode de novo o
+dividir-audio.py ou apague o indice.js para o player procurar os arquivos sozinho.
